@@ -1,0 +1,358 @@
+[
+  {
+    "name": "format",
+    "type": "text",
+    "label": "Format"
+  },
+  {
+    "name": "profileDetected",
+    "type": "text",
+    "label": "Profile detected"
+  },
+  {
+    "name": "profileUrn",
+    "type": "text",
+    "label": "Profile URN"
+  },
+  {
+    "name": "businessProcessId",
+    "type": "text",
+    "label": "Business process ID"
+  },
+  {
+    "name": "franceCtcDetected",
+    "type": "boolean",
+    "label": "France CTC detected"
+  },
+  {
+    "name": "invoice",
+    "type": "collection",
+    "label": "Invoice",
+    "spec": [
+      {
+        "name": "number",
+        "type": "text",
+        "label": "Number"
+      },
+      {
+        "name": "issueDate",
+        "type": "text",
+        "label": "Issue date"
+      },
+      {
+        "name": "currencyCode",
+        "type": "text",
+        "label": "Currency code"
+      },
+      {
+        "name": "documentType",
+        "type": "text",
+        "label": "Document type"
+      },
+      {
+        "name": "typeCode",
+        "type": "text",
+        "label": "Type code"
+      },
+      {
+        "name": "buyerReference",
+        "type": "text",
+        "label": "Buyer reference"
+      },
+      {
+        "name": "seller",
+        "type": "collection",
+        "label": "Seller",
+        "spec": [
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Name"
+          },
+          {
+            "name": "vatId",
+            "type": "text",
+            "label": "VAT ID"
+          },
+          {
+            "name": "taxId",
+            "type": "text",
+            "label": "Tax ID"
+          },
+          {
+            "name": "address",
+            "type": "collection",
+            "label": "Address",
+            "spec": [
+              {
+                "name": "street",
+                "type": "text",
+                "label": "Street"
+              },
+              {
+                "name": "additionalStreet",
+                "type": "text",
+                "label": "Additional street"
+              },
+              {
+                "name": "city",
+                "type": "text",
+                "label": "City"
+              },
+              {
+                "name": "postalCode",
+                "type": "text",
+                "label": "Postal code"
+              },
+              {
+                "name": "countryCode",
+                "type": "text",
+                "label": "Country code"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "buyer",
+        "type": "collection",
+        "label": "Buyer",
+        "spec": [
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Name"
+          },
+          {
+            "name": "vatId",
+            "type": "text",
+            "label": "VAT ID"
+          },
+          {
+            "name": "taxId",
+            "type": "text",
+            "label": "Tax ID"
+          },
+          {
+            "name": "address",
+            "type": "collection",
+            "label": "Address",
+            "spec": [
+              {
+                "name": "street",
+                "type": "text",
+                "label": "Street"
+              },
+              {
+                "name": "additionalStreet",
+                "type": "text",
+                "label": "Additional street"
+              },
+              {
+                "name": "city",
+                "type": "text",
+                "label": "City"
+              },
+              {
+                "name": "postalCode",
+                "type": "text",
+                "label": "Postal code"
+              },
+              {
+                "name": "countryCode",
+                "type": "text",
+                "label": "Country code"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "lines",
+        "type": "array",
+        "label": "Lines",
+        "spec": [
+          {
+            "name": "description",
+            "type": "text",
+            "label": "Description"
+          },
+          {
+            "name": "quantity",
+            "type": "number",
+            "label": "Quantity"
+          },
+          {
+            "name": "unitCode",
+            "type": "text",
+            "label": "Unit code"
+          },
+          {
+            "name": "unitPrice",
+            "type": "number",
+            "label": "Unit price"
+          },
+          {
+            "name": "lineTotal",
+            "type": "number",
+            "label": "Line total"
+          },
+          {
+            "name": "vatRate",
+            "type": "number",
+            "label": "VAT rate"
+          },
+          {
+            "name": "vatCategoryCode",
+            "type": "text",
+            "label": "VAT category code"
+          }
+        ]
+      },
+      {
+        "name": "delivery",
+        "type": "collection",
+        "label": "Delivery",
+        "spec": [
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Name"
+          },
+          {
+            "name": "locationId",
+            "type": "collection",
+            "label": "Location ID",
+            "spec": [
+              {
+                "name": "schemeId",
+                "type": "text",
+                "label": "Scheme ID"
+              },
+              {
+                "name": "id",
+                "type": "text",
+                "label": "ID"
+              }
+            ]
+          },
+          {
+            "name": "date",
+            "type": "text",
+            "label": "Date"
+          },
+          {
+            "name": "address",
+            "type": "collection",
+            "label": "Address",
+            "spec": [
+              {
+                "name": "street",
+                "type": "text",
+                "label": "Street"
+              },
+              {
+                "name": "additionalStreet",
+                "type": "text",
+                "label": "Additional street"
+              },
+              {
+                "name": "city",
+                "type": "text",
+                "label": "City"
+              },
+              {
+                "name": "postalCode",
+                "type": "text",
+                "label": "Postal code"
+              },
+              {
+                "name": "countrySubentity",
+                "type": "text",
+                "label": "Country subentity"
+              },
+              {
+                "name": "countryCode",
+                "type": "text",
+                "label": "Country code"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "totalNetAmount",
+        "type": "number",
+        "label": "Total net amount"
+      },
+      {
+        "name": "totalTaxAmount",
+        "type": "number",
+        "label": "Total tax amount"
+      },
+      {
+        "name": "totalGrossAmount",
+        "type": "number",
+        "label": "Total gross amount"
+      }
+    ]
+  },
+  {
+    "name": "warnings",
+    "type": "array",
+    "label": "Warnings",
+    "spec": [
+      {
+        "name": "code",
+        "type": "text",
+        "label": "Code"
+      },
+      {
+        "name": "message",
+        "type": "text",
+        "label": "Message"
+      },
+      {
+        "name": "field",
+        "type": "text",
+        "label": "Field"
+      },
+      {
+        "name": "terms",
+        "type": "array",
+        "label": "Terms",
+        "spec": {
+          "type": "text",
+          "label": "Terms"
+        }
+      },
+      {
+        "name": "elements",
+        "type": "array",
+        "label": "Elements",
+        "spec": [
+          {
+            "name": "path",
+            "type": "text",
+            "label": "Path"
+          },
+          {
+            "name": "count",
+            "type": "integer",
+            "label": "Count"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "data",
+    "type": "collection",
+    "label": "Full response data"
+  },
+  {
+    "name": "requestId",
+    "type": "text",
+    "label": "Request ID"
+  }
+]

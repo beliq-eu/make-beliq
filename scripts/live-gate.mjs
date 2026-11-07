@@ -7,23 +7,33 @@
 //   every case in test/live/<module>.json;
 // - every body path an output field maps is declared in openapi.json for that answer, and one
 //   that openapi.json requires holds a value; a mapped header is one openapi.json declares;
-// - the output fields a case lists under `present` hold a value.
+// - the output fields a case lists under `present` hold a value, those under `equals` hold
+//   exactly that value, and each array under `includes` holds an item with those fields.
 //
 // Make's own request and response layer is not run here; a scenario in Make is the only check
-// of that. Templates are resolved by scripts/iml.mjs, which fails on anything but a path.
+// of that. Templates are resolved by scripts/iml.mjs, which fails on anything but a path and
+// the two forms of Make's REST universal module template.
+//
+// A case marked `quotaExempt` spends no test document, and ci.yml's preflight does not count
+// it; the gate allows the mark only on a request to a path openapi.json describes as costing
+// no quota.
 //
 // Usage: BELIQ_API_KEY=blq_test_... node scripts/live-gate.mjs [--write-samples]
-// --write-samples writes each module's samples.json from the output of its first case.
+// --write-samples writes a module's samples.json from the output of its case marked `sample`.
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { isDeepStrictEqual } from 'node:util'
 import { readApp, ROOT } from './app.mjs'
-import { lookup, resolve, templates } from './iml.mjs'
+import { isFileRef, loadFile, readManifest, refName } from './fixtures.mjs'
+import { lookup, resolve, slashTemplatePath, templates } from './iml.mjs'
 
 const REQUEST_TIMEOUT_MS = 60_000
-const FIXTURES_DIR = join(ROOT, 'test', 'vendor')
 const CASES_DIR = join(ROOT, 'test', 'live')
+// openapi.json's summary of GET /v1/me: "Account, plan, and quota context for the calling API
+// key (no quota cost)." No other path is described so.
+export const QUOTA_EXEMPT_PATHS = ['/v1/me']
 
 // The directives each file may use. A directive outside these lists changes what Make sends
 // or returns in a way the gate does not model, so it fails the gate instead of being skipped.
@@ -45,7 +55,7 @@ export function unmodelled(directives, allowed, where) {
     .map((key) => `${where}: the gate does not model the directive \`${key}\``)
 }
 
-function deref(schema, spec) {
+export function deref(schema, spec) {
   let current = schema
   while (current && current.$ref) {
     current = current.$ref
@@ -100,6 +110,8 @@ export function checkOutputPath(field, path, answer, operation, spec) {
     return []
   }
   if (root === 'headers') {
+    // The whole header collection, as the universal module maps it, names no header to check.
+    if (rest.length === 0) return []
     const declared = Object.keys(response?.headers ?? {}).map((h) => h.toLowerCase())
     if (rest.length !== 1 || !declared.includes(rest[0].toLowerCase())) {
       return [`output ${field} maps headers.${rest.join('.')}, which openapi.json does not declare`]
@@ -114,22 +126,18 @@ function hasValue(value) {
   return value !== undefined && value !== null && value !== ''
 }
 
-async function loadParameters(parameters) {
+async function loadParameters(parameters, manifest) {
   const loaded = {}
   for (const [name, value] of Object.entries(parameters)) {
-    loaded[name] =
-      value && typeof value === 'object' && 'fixture' in value
-        ? await readFile(join(FIXTURES_DIR, value.fixture))
-        : value
+    loaded[name] = isFileRef(value) ? (await loadFile(value, manifest)).bytes : value
   }
   return loaded
 }
 
-function fixtureNames(parameters) {
-  return Object.values(parameters)
-    .filter((v) => v && typeof v === 'object' && 'fixture' in v)
-    .map((v) => v.fixture)
-    .join(', ')
+function caseName(parameters) {
+  const files = Object.values(parameters).filter(isFileRef).map(refName)
+  if (files.length) return files.join(', ')
+  return [parameters.method, parameters.url].filter((v) => typeof v === 'string').join(' ')
 }
 
 async function send(url, { method, headers, body }) {
@@ -149,17 +157,71 @@ export function requestUrl(baseUrl, url) {
   return new URL(/^https?:\/\//.test(url) ? url : `${baseUrl.replace(/\/$/, '')}${url}`)
 }
 
-function buildRequest(baseUrl, baseHeaders, api, scope) {
-  const url = requestUrl(baseUrl, resolve(api.url, scope))
+// A module's url must be relative to the base URL: a path, or a slash and one template, as the
+// universal module has it. Make does not approve a universal module that lets a user point the
+// request, and the connection's key, at another host:
+// https://developers.make.com/custom-apps-documentation/app-components/modules/universal-module.md
+export function checkRelativeUrl(url, where) {
+  if (typeof url !== 'string') return [`${where}: url is not text`]
+  if (slashTemplatePath(url)) return []
+  if (url.startsWith('/') && !url.startsWith('//') && !url.includes('{{')) return []
+  return [`${where}: url ${JSON.stringify(url)} is not a path relative to the base URL`]
+}
+
+// The path a url resolves to. For `/{{path}}`, Make drops the doubled slash when the value
+// starts with one ("it is automatically removed", universal-module/rest.md); what Make does with
+// a value that starts with two slashes, or with a scheme, is not documented, so that throws.
+export function resolveUrl(url, scope) {
+  const path = slashTemplatePath(url)
+  if (!path) return resolve(url, scope)
+  const value = lookup(path, scope)
+  if (typeof value !== 'string' || !value) throw new Error(`the url parameter ${path.join('.')} is not a non-empty text`)
+  if (value.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(value)) {
+    throw new Error(`the url value ${JSON.stringify(value)} is not modelled: what Make sends for it is unmeasured`)
+  }
+  return value.startsWith('/') ? value : `/${value}`
+}
+
+function buildBody(api, scope) {
+  if (api.body === undefined) return undefined
+  const body = resolve(api.body, scope)
+  if (api.type === 'binary') {
+    if (!Buffer.isBuffer(body)) throw new Error('a binary request body must map a file parameter')
+    return body
+  }
+  if (api.type === 'text') {
+    if (body === undefined || body === null || body === '') return undefined
+    if (typeof body !== 'string') throw new Error('a text request body that is not text is not modelled')
+    return body
+  }
+  throw new Error(`request type ${api.type} is not modelled; only binary and text are`)
+}
+
+export function buildRequest(baseUrl, baseHeaders, api, scope) {
+  const url = requestUrl(baseUrl, resolveUrl(api.url, scope))
   for (const [k, v] of Object.entries(resolve(api.qs ?? {}, scope))) url.searchParams.set(k, String(v))
   const headers = { ...resolve(baseHeaders ?? {}, scope), ...resolve(api.headers ?? {}, scope) }
-  let body
-  if (api.body !== undefined) {
-    if (api.type !== 'binary') throw new Error(`request type ${api.type} is not modelled; only binary is`)
-    body = resolve(api.body, scope)
-    if (!Buffer.isBuffer(body)) throw new Error('a binary request body must map a file parameter')
+  const method = resolve(api.method, scope)
+  if (typeof method !== 'string') throw new Error('the request method does not resolve to text')
+  return { url, init: { method, headers, body: buildBody(api, scope) } }
+}
+
+// The checks a case lists on the module's output, beyond the openapi.json paths.
+export function checkCase(c, output) {
+  const failures = []
+  const at = (field) => lookup(field.split('.'), output)
+  for (const field of c.present ?? []) {
+    if (!hasValue(at(field))) failures.push(`output ${field} holds no value`)
   }
-  return { url, init: { method: api.method, headers, body } }
+  for (const [field, wanted] of Object.entries(c.equals ?? {})) {
+    if (!isDeepStrictEqual(at(field), wanted)) failures.push(`output ${field} is ${JSON.stringify(at(field))}, not ${JSON.stringify(wanted)}`)
+  }
+  for (const [field, wanted] of Object.entries(c.includes ?? {})) {
+    const items = at(field)
+    const match = Array.isArray(items) && items.some((item) => Object.entries(wanted).every(([k, v]) => isDeepStrictEqual(item?.[k], v)))
+    if (!match) failures.push(`output ${field} holds no item with ${JSON.stringify(wanted)}`)
+  }
+  return failures
 }
 
 export async function runGate({ apiKey, writeSamples = false, log = console.log }) {
@@ -179,6 +241,7 @@ export async function runGate({ apiKey, writeSamples = false, log = console.log 
     const api = m.sections.api.json
     failures.push(...unmodelled(api, MODULE_DIRECTIVES, `${m.name}/api.json`))
     failures.push(...unmodelled(api.response ?? {}, MODULE_RESPONSE_DIRECTIVES, `${m.name}/api.json response`))
+    failures.push(...checkRelativeUrl(api.url, `${m.name}/api.json`))
   }
   if (conn.response?.valid !== CONNECTION_VALID) {
     failures.push(`connection/api.json: response.valid is not ${CONNECTION_VALID}, the one form the gate models`)
@@ -188,6 +251,7 @@ export async function runGate({ apiKey, writeSamples = false, log = console.log 
   const specRes = await fetch(new URL('/openapi.json', base.baseUrl), { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
   if (!specRes.ok) throw new Error(`openapi.json answered ${specRes.status}`)
   const spec = await specRes.json()
+  const manifest = await readManifest()
 
   const connScope = { parameters: { apiKey } }
   const me = await send(resolve(conn.url, connScope), {
@@ -200,12 +264,6 @@ export async function runGate({ apiKey, writeSamples = false, log = console.log 
 
   for (const m of app.modules) {
     const api = m.sections.api.json
-    const apiPath = requestUrl(base.baseUrl, api.url).pathname
-    const operation = spec.paths?.[apiPath]?.[api.method.toLowerCase()]
-    if (!operation) {
-      failures.push(`${m.name}: openapi.json has no ${api.method} ${apiPath}`)
-      continue
-    }
     let cases
     try {
       cases = JSON.parse(await readFile(join(CASES_DIR, `${m.name}.json`), 'utf8')).cases
@@ -218,9 +276,18 @@ export async function runGate({ apiKey, writeSamples = false, log = console.log 
       continue
     }
     for (const [i, c] of cases.entries()) {
-      const label = `${m.name} [${fixtureNames(c.parameters) || i}]`
-      const scope = { connection: { apiKey }, parameters: await loadParameters(c.parameters) }
+      const label = `${m.name} [${caseName(c.parameters) || i}]`
+      const scope = { connection: { apiKey }, parameters: await loadParameters(c.parameters, manifest) }
       const { url, init } = buildRequest(base.baseUrl, base.headers, api, scope)
+      const operation = spec.paths?.[url.pathname]?.[init.method.toLowerCase()]
+      if (!operation) {
+        failures.push(`${label}: openapi.json has no ${init.method} ${url.pathname}`)
+        continue
+      }
+      if (c.quotaExempt && !QUOTA_EXEMPT_PATHS.includes(url.pathname)) {
+        failures.push(`${label}: marked quotaExempt, but ${url.pathname} spends a test document`)
+        continue
+      }
       const res = await send(url, init)
       if (res.status !== 200) {
         failures.push(`${label}: answered ${res.status}${res.body?.error?.code ? ` ${res.body.error.code}` : ''}`)
@@ -234,12 +301,10 @@ export async function runGate({ apiKey, writeSamples = false, log = console.log 
         const found = checkOutputPath(field, path, answer, operation, spec)
         failures.push(...found.map((f) => `${label}: ${f}`))
       }
-      for (const field of c.present ?? []) {
-        if (!hasValue(lookup(field.split('.'), output))) failures.push(`${label}: output ${field} holds no value`)
-      }
+      failures.push(...checkCase(c, output).map((f) => `${label}: ${f}`))
       if (failures.length !== before) continue
       log(`${label}: 200, ${templates(api.response.output).length} output fields checked`)
-      if (writeSamples && i === 0) {
+      if (writeSamples && c.sample) {
         await writeFile(m.sections.samples.file, `${JSON.stringify(output, null, 2)}\n`)
         log(`${label}: wrote ${m.name}/samples.json`)
       }

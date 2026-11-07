@@ -155,21 +155,33 @@ test('a new commit is a new plan, even with the same actions', async () => {
   assert.notEqual(planId('aaa', actions), planId('bbb', actions))
 })
 
-test('a module Make does not have yet is created, filled, then published', async () => {
+function dropModule(name) {
+  make.modules.delete(name)
+  for (const key of [...make.sections.keys()]) if (key.startsWith(`${appPath}/modules/${name}/`)) make.sections.delete(key)
+}
+
+test('modules Make does not have yet are each created and filled, and none is published', async () => {
   seedFromRepo()
-  const [first] = app.modules
-  make.modules.delete(first.name)
-  for (const key of [...make.sections.keys()]) if (key.startsWith(`${appPath}/modules/${first.name}/`)) make.sections.delete(key)
+  const [kept, ...added] = app.modules
+  assert.ok(added.length >= 2, 'the repo holds at least two modules besides the first')
+  for (const m of added) dropModule(m.name)
   const p = await plan(request, app)
   const labels = sections(p)
-  const create = labels.indexOf(`create module ${first.name}`)
-  const publish = labels.findIndex((l) => l.startsWith(`publish module ${first.name}`))
-  assert.ok(create >= 0 && publish > create)
-  assert.equal(labels.slice(create + 1, publish).length, 6, 'all six sections between create and publish')
+  for (const m of added) {
+    const create = labels.findIndex((l) => l.startsWith(`create module ${m.name} (unpublished`))
+    assert.ok(create >= 0, `the plan creates ${m.name}`)
+    assert.deepEqual(labels.slice(create + 1, create + 7), ['api', 'parameters', 'expect', 'interface', 'samples', 'scope'].map((s) => `module ${m.name} ${s}`))
+  }
+  assert.ok(!labels.some((l) => l.includes(`module ${kept.name} `)), 'a module equal to the repo is not pushed')
   await apply(request, app, 'c0ffee', planId('c0ffee', p.actions), () => {})
-  const posted = JSON.parse(writes().find((r) => r.method === 'POST' && r.path === `${appPath}/modules`).body)
-  assert.equal(posted.connection, CONNECTION)
-  assert.ok(writes().some((r) => r.path === `${appPath}/modules/${first.name}/public`))
+  const posted = writes().filter((r) => r.method === 'POST' && r.path === `${appPath}/modules`).map((r) => JSON.parse(r.body))
+  assert.deepEqual(posted.map((x) => x.name).sort(), added.map((m) => m.name).sort())
+  assert.ok(posted.every((x) => x.connection === CONNECTION))
+  for (const m of added) {
+    assert.equal(posted.find((x) => x.name === m.name).typeId, m.module.json.typeId)
+    for (const [s, sec] of Object.entries(m.sections)) assert.equal(make.sections.get(`${appPath}/modules/${m.name}/${s}`), sec.text)
+  }
+  assert.ok(!writes().some((r) => r.path.endsWith('/public')), 'an apply publishes nothing')
 })
 
 test('a push that Make stores differently fails the deploy', async () => {

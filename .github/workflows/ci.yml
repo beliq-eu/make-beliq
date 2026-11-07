@@ -27,13 +27,20 @@ jobs:
 
       # Named one by one: a glob that matches nothing makes node --test exit 0.
       - name: Unit tests (no network)
-        run: node --test test/iml.test.mjs test/app.test.mjs test/live-gate.test.mjs test/deploy.test.mjs
+        run: node --test test/iml.test.mjs test/app.test.mjs test/live-gate.test.mjs test/deploy.test.mjs test/parse-interface.test.mjs
+
+      # Fetching openapi.json spends no document, so this runs on every pull request and push,
+      # and a change to POST /v1/parse's answer fails the next run here rather than waiting
+      # for a live gate the preflight may skip.
+      - name: Parse interface matches the live openapi.json
+        run: node scripts/parse-interface.mjs --check
 
       - name: Scrub check (no em-dash)
         run: bash scripts/scrub-check.sh
 
   # The live gate sends the app's own requests to the live beliq API: GET /v1/me, which is
-  # quota-exempt, and one document for each case in test/live/*.json.
+  # quota-exempt, and one document for each case in test/live/*.json that is not marked
+  # `quotaExempt` (the gate allows that mark only on GET /v1/me).
   # BELIQ_API_KEY is a `blq_test_` sandbox key: it runs the full rule stack but draws on the
   # sandbox allowance instead of the plan quota.
   #
@@ -59,7 +66,7 @@ jobs:
         run: |
           set -uo pipefail
 
-          needed="$(jq -s '[.[].cases[]] | length' test/live/*.json)"
+          needed="$(jq -s '[.[].cases[] | select(.quotaExempt != true)] | length' test/live/*.json)"
 
           if [ -z "${BELIQ_API_KEY:-}" ]; then
             echo "run=false" >> "$GITHUB_OUTPUT"

@@ -4,16 +4,20 @@
 //   node scripts/deploy.mjs plan              what differs from the live app, and the plan's id
 //   node scripts/deploy.mjs apply <plan-id>   pushes that plan, if neither the checkout nor the
 //                                             live app has moved since it was printed
-//   node scripts/deploy.mjs publish <module>  publishes a module that an apply created but did
-//                                             not get to publish
+//   node scripts/deploy.mjs publish <module>  publishes a module, which is final: Make never
+//                                             deletes a published module or changes its name
 //
 // A deploy reaches every organisation that installed the app at once, with no review step, so
 // each one is a person's yes to a plan this script printed. Every section is read back from
 // Make and compared as JSON, before and after it is pushed. Two things cannot be read back and
 // are pushed on every deploy: a module's label and description, which Make's GET of a module
 // returned stale, and the icon, which Make re-renders (it keeps the shape of the opaque pixels,
-// in white, on the theme colour). Make's `public` fields read false right after a publish, so
-// the script never reads them: it publishes a module in the run that creates it.
+// in white, on the theme colour).
+//
+// An apply creates a new module unpublished, so it can be run in a scenario of the app's
+// owner before anyone else sees it; `publish <module>` is the separate step after that run.
+// Make's `public` fields read false right after a publish, so the script never reads them and
+// cannot tell a published module from an unpublished one: whoever publishes keeps that record.
 //
 // The Make API token is read from ~/.config/beliq/make-api-token, mode 600, and never printed.
 // Make API reference: https://developers.make.com/api-documentation/api-reference/sdk-apps
@@ -132,7 +136,7 @@ export async function plan(request, app) {
     if (extra.length) throw new Error(`${m.name}/module.json holds ${extra.join(', ')}, which the deploy does not push`)
     if (!liveModules.includes(m.name)) {
       actions.push({
-        label: `create module ${m.name}`,
+        label: `create module ${m.name} (unpublished; publish it with \`publish ${m.name}\` after a run in Make)`,
         method: 'POST',
         path: `${appPath}/modules`,
         ...json({ ...m.module.json, connection: CONNECTION }),
@@ -140,7 +144,6 @@ export async function plan(request, app) {
       for (const s of MODULE_SECTIONS) {
         actions.push({ label: `module ${m.name} ${s}`, method: 'PUT', path: `${modulePath}/${s}`, ...sectionBody(m.sections[s]), readback: true })
       }
-      actions.push({ label: `publish module ${m.name} (final: it can never be deleted)`, method: 'POST', path: `${modulePath}/public` })
       continue
     }
     const liveModule = JSON.parse((await get(request, modulePath)).text).appModule

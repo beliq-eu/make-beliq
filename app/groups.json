@@ -1,3 +1,4 @@
 [
-  { "label": "E-invoices", "modules": ["validate"] }
+  { "label": "E-invoices", "modules": ["validate", "parse"] },
+  { "label": "Other", "modules": ["makeApiCall"] }
 ]

@@ -1,5 +1,5 @@
 {
-  "$comment": "Files the live gate sends, each a byte copy of its source at a pinned commit, kept under test/vendor/ with its upstream's licence. test/app.test.mjs checks every sha256 against the file.",
+  "$comment": "Files the live gate sends. A fixture is a byte copy of its source at a pinned commit, kept under test/vendor/ with its upstream's licence. A mutation is a listed fixture with one exact text replaced once, built at run time by scripts/fixtures.mjs; `sha256` is the result's. test/app.test.mjs checks every sha256.",
   "fixtures": [
     {
       "file": "xrechnung-testsuite/01.01a-INVOICE_uncefact.xml",
@@ -19,6 +19,16 @@
       "license": "Apache-2.0",
       "licenseFile": "mustangproject/LICENSE",
       "noticeFile": "mustangproject/NOTICE"
+    }
+  ],
+  "mutations": [
+    {
+      "name": "01.01a-INVOICE_uncefact-BR-CO-16",
+      "base": "xrechnung-testsuite/01.01a-INVOICE_uncefact.xml",
+      "replace": "<ram:DuePayableAmount>336.9</ram:DuePayableAmount>",
+      "with": "<ram:DuePayableAmount>0.01</ram:DuePayableAmount>",
+      "sha256": "c5e946200d29ef7f44688ef46bbae28ea8770a9eab46e5cdcb7ee595c2335cf6",
+      "breaks": "BR-CO-16 of EN 16931-1, as the EN 16931 CII Schematron 1.3.16 words it: \"Amount due for payment (BT-115) = Invoice total amount with VAT (BT-112) -Paid amount (BT-113) +Rounding amount (BT-114).\" The base file has GrandTotalAmount 336.9 and no prepaid or rounding amount, so a DuePayableAmount of 0.01 fails it."
     }
   ]
 }

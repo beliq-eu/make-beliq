@@ -1,7 +1,8 @@
 {
-  "$comment": "The live gate sends the validate module's request once per case. `present` names output fields that must hold a value for this fixture: both files are ones a ruleset runs on, so the verdict carries its badge and a ruleset fingerprint.",
+  "$comment": "The live gate sends the validate module's request once per case. `present` names output fields that must hold a value, `equals` fields that must hold exactly that value, and `includes` an array that must hold an item with those fields. The first two files are ones a ruleset runs on, so the verdict carries its badge and a ruleset fingerprint. The third is the first with one amount changed (test/fixtures.json, `mutations`), so it fails BR-CO-16: beliq answers a rule failure with 200 and valid false, not with an error. The case marked `sample` is the one --write-samples writes samples.json from.",
   "cases": [
     {
+      "sample": true,
       "parameters": {
         "data": {
           "fixture": "xrechnung-testsuite/01.01a-INVOICE_uncefact.xml"
@@ -30,6 +31,28 @@
         "rulesetSha256",
         "requestId"
       ]
+    },
+    {
+      "parameters": {
+        "data": {
+          "mutation": "01.01a-INVOICE_uncefact-BR-CO-16"
+        },
+        "contentType": "application/xml"
+      },
+      "equals": {
+        "verdict.valid": false
+      },
+      "present": [
+        "verdict.verificationBadge",
+        "verdict.verificationBadgeLabel",
+        "rulesetSha256",
+        "requestId"
+      ],
+      "includes": {
+        "errors": {
+          "ruleId": "BR-CO-16"
+        }
+      }
     }
   ]
 }
