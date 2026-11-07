@@ -1,0 +1,26 @@
+{
+  "$comment": "The live gate sends the universal module's request once: GET /v1/me, which costs no quota (`quotaExempt`), with the module's default Content-Type header and no query string. No case is marked `sample`: the answer names the key's organisation and key prefix, and samples.json is public, so it stays empty as in Make's template.",
+  "cases": [
+    {
+      "quotaExempt": true,
+      "parameters": {
+        "url": "/v1/me",
+        "method": "GET",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "qs": []
+      },
+      "equals": {
+        "statusCode": 200
+      },
+      "present": [
+        "body.data.keyId",
+        "headers.x-request-id"
+      ]
+    }
+  ]
+}

@@ -1,8 +1,11 @@
 // The live gate's checks against openapi.json, without the network. The live run itself is
 // the CI job `live`.
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { test } from 'node:test'
-import { checkOutputPath, requestUrl, runGate, unmodelled } from '../scripts/live-gate.mjs'
+import { ROOT } from '../scripts/app.mjs'
+import { buildRequest, checkCase, checkOutputPath, checkRelativeUrl, isQuotaExempt, requestUrl, resolveUrl, runGate, unmodelled } from '../scripts/live-gate.mjs'
 
 const spec = {
   components: {
@@ -101,4 +104,55 @@ test('the base URL keeps its path, as Make joins it with the module url', () => 
   assert.equal(requestUrl('https://api.beliq.eu', '/v1/validate').href, 'https://api.beliq.eu/v1/validate')
   assert.equal(requestUrl('https://api.example.invalid/v1/', '/validate').href, 'https://api.example.invalid/v1/validate')
   assert.equal(requestUrl('https://api.beliq.eu', 'https://other.invalid/x').href, 'https://other.invalid/x')
+})
+
+test('the whole header collection passes, as the universal module maps it', () => {
+  assert.deepEqual(checkOutputPath('headers', ['headers'], answer({}), operation, spec), [])
+})
+
+test('a module url must be relative to the base URL', () => {
+  for (const url of ['/v1/validate', '/{{parameters.url}}']) assert.deepEqual(checkRelativeUrl(url, 'm'), [], url)
+  for (const url of ['{{parameters.url}}', 'https://other.invalid/x', '//other.invalid/x', '/v1/{{parameters.url}}', 'v1/me']) {
+    assert.equal(checkRelativeUrl(url, 'm').length, 1, url)
+  }
+})
+
+test('a typed path keeps one slash, with or without its own; two slashes or a scheme throw', () => {
+  const at = (url) => resolveUrl('/{{parameters.url}}', { parameters: { url } })
+  assert.equal(at('/v1/me'), '/v1/me')
+  assert.equal(at('v1/me'), '/v1/me')
+  for (const url of ['//other.invalid/x', 'https://other.invalid/x', '', undefined]) assert.throws(() => at(url), String(url))
+})
+
+const universal = JSON.parse(readFileSync(join(ROOT, 'app', 'modules', 'makeApiCall', 'api.json'), 'utf8'))
+const call = (parameters) =>
+  buildRequest('https://api.example.invalid', { 'x-api-key': '{{connection.apiKey}}' }, universal, { connection: { apiKey: 'k' }, parameters })
+
+test("the universal module's request: base headers, the user's headers and query, the typed method", () => {
+  const { url, init } = call({ url: '/v1/me', method: 'GET', headers: [{ key: 'Accept', value: 'application/json' }], qs: [{ key: 'a', value: '1' }] })
+  assert.equal(url.href, 'https://api.example.invalid/v1/me?a=1')
+  assert.equal(init.method, 'GET')
+  assert.deepEqual(init.headers, { 'x-api-key': 'k', Accept: 'application/json' })
+  assert.equal(init.body, undefined)
+})
+
+test("the universal module sends a text body as typed, and refuses one that is not text", () => {
+  assert.equal(call({ url: '/v1/x', method: 'POST', headers: [], qs: [], body: '<a/>' }).init.body, '<a/>')
+  assert.throws(() => call({ url: '/v1/x', method: 'POST', headers: [], qs: [], body: { a: 1 } }), /not text/)
+})
+
+test('a case checks present, equals and includes on the output', () => {
+  const output = { verdict: { valid: false }, errors: [{ ruleId: 'BR-CO-16', severity: 'fatal' }], statusCode: 200 }
+  assert.deepEqual(checkCase({ present: ['verdict.valid'], equals: { 'verdict.valid': false, statusCode: 200 }, includes: { errors: { ruleId: 'BR-CO-16' } } }, output), [])
+  assert.equal(checkCase({ equals: { 'verdict.valid': true } }, output).length, 1)
+  assert.equal(checkCase({ equals: { statusCode: '200' } }, output).length, 1)
+  assert.equal(checkCase({ includes: { errors: { ruleId: 'BR-CO-15' } } }, output).length, 1)
+  assert.equal(checkCase({ includes: { verdict: { valid: false } } }, output).length, 1, 'includes needs an array')
+  assert.equal(checkCase({ present: ['verdict.missing'] }, output).length, 1)
+})
+
+test('a case may be quota-exempt only on an operation openapi.json says costs no quota', () => {
+  assert.equal(isQuotaExempt({ summary: 'Account, plan, and quota context for the calling API key (no quota cost).' }), true)
+  assert.equal(isQuotaExempt({ summary: 'Validate an e-invoice.' }), false)
+  assert.equal(isQuotaExempt(undefined), false)
 })

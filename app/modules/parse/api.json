@@ -1,0 +1,22 @@
+{
+  "url": "/v1/parse",
+  "method": "POST",
+  "type": "binary",
+  "headers": {
+    "Content-Type": "{{parameters.contentType}}"
+  },
+  "body": "{{parameters.data}}",
+  "response": {
+    "output": {
+      "format": "{{body.data.format}}",
+      "profileDetected": "{{body.data.profileDetected}}",
+      "profileUrn": "{{body.data.profileUrn}}",
+      "businessProcessId": "{{body.data.businessProcessId}}",
+      "franceCtcDetected": "{{body.data.franceCtcDetected}}",
+      "invoice": "{{body.data.invoice}}",
+      "warnings": "{{body.data.warnings}}",
+      "data": "{{body.data}}",
+      "requestId": "{{headers.`x-request-id`}}"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$comment": "The live gate sends the parse module's request once per case. `present` names output fields that must hold a value for this fixture. Both files carry an invoice number and a gross total. The case marked `sample` is the one --write-samples writes samples.json from.",
+  "cases": [
+    {
+      "sample": true,
+      "parameters": {
+        "data": {
+          "fixture": "mustangproject/EN16931_Einfach.pdf"
+        },
+        "contentType": "application/pdf"
+      },
+      "present": [
+        "format",
+        "invoice.number",
+        "invoice.totalGrossAmount",
+        "warnings",
+        "data",
+        "requestId"
+      ]
+    },
+    {
+      "parameters": {
+        "data": {
+          "fixture": "xrechnung-testsuite/01.01a-INVOICE_uncefact.xml"
+        },
+        "contentType": "application/xml"
+      },
+      "present": [
+        "format",
+        "invoice.number",
+        "invoice.totalGrossAmount",
+        "warnings",
+        "data",
+        "requestId"
+      ]
+    }
+  ]
+}
