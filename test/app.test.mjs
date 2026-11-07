@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import { readApp, ROOT } from '../scripts/app.mjs'
 import { FIXTURES_DIR, isFileRef, loadFile, readManifest, sha256 } from '../scripts/fixtures.mjs'
 import { templates } from '../scripts/iml.mjs'
-import { checkRelativeUrl, QUOTA_EXEMPT_PATHS, requestUrl, resolveUrl } from '../scripts/live-gate.mjs'
+import { checkRelativeUrl } from '../scripts/live-gate.mjs'
 
 const app = await readApp()
 const manifest = await readManifest()
@@ -33,8 +33,16 @@ function leafAt(tree, output) {
   )
 }
 
-// Every key of a sample that its interface does not declare, as a path. A sample is one real
-// answer, so it may leave out a field the document did not carry, but never add one.
+// A sample has the same tree as the output mapping: the gate writes a field the answer did not
+// carry as null. Below a field mapped by one template, see undeclared().
+function sampleTree(sample, output) {
+  return Object.fromEntries(
+    Object.entries(sample).map(([k, v]) => [k, output?.[k] && typeof output[k] === 'object' && v && typeof v === 'object' ? sampleTree(v, output[k]) : null]),
+  )
+}
+
+// Every key of a sample that its interface does not declare, as a path. The API's answer may
+// leave out a field the document did not carry, but never add one.
 function undeclared(value, fields, where = '') {
   const byName = Object.fromEntries(fields.map((f) => [f.name, f]))
   const out = []
@@ -49,7 +57,10 @@ function undeclared(value, fields, where = '') {
       out.push(...undeclared(v, f.spec, `${at}.`))
     }
     if (f.type === 'array' && Array.isArray(f.spec) && Array.isArray(v)) {
-      v.forEach((item, i) => out.push(...undeclared(item, f.spec, `${at}.${i}.`)))
+      v.forEach((item, i) => {
+        if (item !== null && typeof item === 'object' && !Array.isArray(item)) out.push(...undeclared(item, f.spec, `${at}.${i}.`))
+        else out.push(`${at}.${i} (not a collection)`)
+      })
     }
   }
   return out
@@ -63,8 +74,11 @@ for (const m of app.modules) {
     assert.deepEqual(outputTree(output), leafAt(iface, output))
   })
 
-  test(`${m.name}: the samples hold no field its interface does not declare`, () => {
-    assert.deepEqual(undeclared(m.sections.samples.json, m.sections.interface.json), [])
+  test(`${m.name}: the samples hold the fields the output maps, and none the interface does not declare`, () => {
+    const samples = m.sections.samples.json
+    const output = m.sections.api.json.response.output
+    if (Object.keys(samples).length) assert.deepEqual(sampleTree(samples, output), outputTree(output))
+    assert.deepEqual(undeclared(samples, m.sections.interface.json), [])
   })
 
   test(`${m.name}: module.json names the folder it sits in`, () => {
@@ -96,10 +110,6 @@ for (const m of app.modules) {
       const loaded = []
       for (const ref of files) loaded.push(await loadFile(ref, manifest))
       if ('contentType' in c.parameters) assert.deepEqual(loaded.map((f) => f.contentType), [c.parameters.contentType])
-      if (c.quotaExempt) {
-        const path = requestUrl(app.base.json.baseUrl, resolveUrl(m.sections.api.json.url, { parameters: c.parameters })).pathname
-        assert.ok(QUOTA_EXEMPT_PATHS.includes(path), `a quotaExempt case sends ${path}`)
-      }
     }
   })
 }

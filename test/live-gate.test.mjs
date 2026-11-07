@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { ROOT } from '../scripts/app.mjs'
-import { buildRequest, checkCase, checkOutputPath, checkRelativeUrl, requestUrl, resolveUrl, runGate, unmodelled } from '../scripts/live-gate.mjs'
+import { buildRequest, checkCase, checkOutputPath, checkRelativeUrl, isQuotaExempt, requestUrl, resolveUrl, runGate, unmodelled } from '../scripts/live-gate.mjs'
 
 const spec = {
   components: {
@@ -149,4 +149,10 @@ test('a case checks present, equals and includes on the output', () => {
   assert.equal(checkCase({ includes: { errors: { ruleId: 'BR-CO-15' } } }, output).length, 1)
   assert.equal(checkCase({ includes: { verdict: { valid: false } } }, output).length, 1, 'includes needs an array')
   assert.equal(checkCase({ present: ['verdict.missing'] }, output).length, 1)
+})
+
+test('a case may be quota-exempt only on an operation openapi.json says costs no quota', () => {
+  assert.equal(isQuotaExempt({ summary: 'Account, plan, and quota context for the calling API key (no quota cost).' }), true)
+  assert.equal(isQuotaExempt({ summary: 'Validate an e-invoice.' }), false)
+  assert.equal(isQuotaExempt(undefined), false)
 })

@@ -1,6 +1,6 @@
 {
   "label": "beliq",
-  "description": "Validate and parse e-invoices with beliq.",
+  "description": "Validate e-invoices with beliq.",
   "theme": "#1f2937",
   "language": "en",
   "countries": []

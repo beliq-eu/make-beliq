@@ -16,9 +16,8 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { APP_DIR } from './app.mjs'
-import { deref } from './live-gate.mjs'
+import { deref, fetchSpec } from './openapi.mjs'
 
-const REQUEST_TIMEOUT_MS = 60_000
 export const PARSE_DIR = join(APP_DIR, 'modules', 'parse')
 const OPERATION = ['/v1/parse', 'post']
 
@@ -29,9 +28,11 @@ const SCALAR_TYPES = { string: 'text', number: 'number', integer: 'integer', boo
 
 export class UnmappedSchemaError extends Error {}
 
+// A word is a run of lower case after at most one capital, or a run of capitals and digits,
+// which stays as it is: `rulesetSHA256` is "Ruleset SHA256".
 export function label(name) {
-  const words = name.split(/(?=[A-Z])/).map((w) => w.toLowerCase())
-  const text = words.map((w) => CAPITALS[w] ?? w).join(' ')
+  const words = name.match(/[A-Z0-9]+(?![a-z])|[A-Z]?[a-z0-9]+/g) ?? [name]
+  const text = words.map((w) => (/^[A-Z0-9]+$/.test(w) ? w : (CAPITALS[w.toLowerCase()] ?? w.toLowerCase()))).join(' ')
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
@@ -84,6 +85,8 @@ export function generate(spec) {
     throw new UnmappedSchemaError(`openapi.json declares no x-request-id header for ${method.toUpperCase()} ${path}`)
   }
   const data = fields(body.properties.data, spec, 'data')
+  const clash = data.filter((f) => ['data', 'requestId'].includes(f.name))
+  if (clash.length) throw new UnmappedSchemaError(`data has a key ${clash.map((f) => f.name).join(', ')}, which the module maps from elsewhere`)
   const iface = [
     ...data,
     { name: 'data', type: 'collection', label: 'Full response data' },
@@ -120,9 +123,7 @@ async function loadSpec(args) {
   const i = args.indexOf('--spec')
   if (i >= 0) return JSON.parse(await readFile(args[i + 1], 'utf8'))
   const base = JSON.parse(await readFile(join(APP_DIR, 'base.json'), 'utf8'))
-  const res = await fetch(new URL('/openapi.json', base.baseUrl), { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
-  if (!res.ok) throw new Error(`openapi.json answered ${res.status}`)
-  return res.json()
+  return fetchSpec(base.baseUrl)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

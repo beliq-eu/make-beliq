@@ -36,9 +36,9 @@ export async function loadFile(ref, manifest, dir = FIXTURES_DIR) {
   if (!m) throw new Error(`the mutation ${ref.mutation} is not in fixtures.json`)
   const base = await loadFile({ fixture: m.base }, manifest, dir)
   const text = base.bytes.toString('utf8')
-  const count = text.split(m.replace).length - 1
-  if (count !== 1) throw new Error(`the mutation ${m.name}: its text occurs ${count} times in ${m.base}, not once`)
-  const bytes = Buffer.from(text.replace(m.replace, m.with), 'utf8')
+  const parts = text.split(m.replace)
+  if (parts.length !== 2) throw new Error(`the mutation ${m.name}: its text occurs ${parts.length - 1} times in ${m.base}, not once`)
+  const bytes = Buffer.from(parts.join(m.with), 'utf8')
   if (sha256(bytes) !== m.sha256) throw new Error(`the mutation ${m.name} does not give the SHA-256 fixtures.json records`)
   return { bytes, contentType: base.contentType }
 }

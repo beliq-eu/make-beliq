@@ -39,6 +39,8 @@ test('labels split the key name and write abbreviations in capitals', () => {
   assert.equal(label('businessProcessId'), 'Business process ID')
   assert.equal(label('franceCtcDetected'), 'France CTC detected')
   assert.equal(label('vatId'), 'VAT ID')
+  assert.equal(label('rulesetSHA256'), 'Ruleset SHA256')
+  assert.equal(label('leitwegID'), 'Leitweg ID')
 })
 
 test('every key of data becomes a field, mapped whole, with data and requestId after them', () => {
@@ -66,6 +68,9 @@ test('a schema form the generator does not map throws instead of guessing a type
   assert.throws(() => field('x', { type: 'null' }, {}), UnmappedSchemaError)
   assert.throws(() => generate(specWith(data, {})), /x-request-id/)
   assert.throws(() => generate({ paths: {} }), UnmappedSchemaError)
+  const clash = structuredClone(data)
+  clash.properties.requestId = { type: 'string' }
+  assert.throws(() => generate(specWith(clash)), /requestId/)
 })
 
 const work = mkdtempSync(join(tmpdir(), 'make-beliq-parse-interface-'))
@@ -77,6 +82,8 @@ test('the check names a committed file that differs from what the spec gives, an
   const files = await render(specWith(data), dir)
   for (const [file, content] of Object.entries(files)) writeFileSync(file, content)
   assert.deepEqual(await differing(files), [])
+  writeFileSync(join(dir, 'interface.json'), '[]\n')
+  assert.deepEqual(await differing(files), [join(dir, 'interface.json')])
   const fewer = structuredClone(data)
   delete fewer.properties.vatId
   const drifted = await render(specWith(fewer), dir)

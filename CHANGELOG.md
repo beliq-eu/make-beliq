@@ -18,7 +18,8 @@ app, and is not this one.
 - **Make an API call** sends a request to a path relative to `https://api.beliq.eu`, with
   the connection's API key, the method, headers, query string and body the user enters.
   Its output holds the answer's `body`, `headers` and `statusCode`.
-- The app's description reads "Validate and parse e-invoices with beliq."
+- The app's description on Make stays "Validate e-invoices with beliq." until Parse is
+  published, since a deploy shows it to every organisation that installed the app.
 
 ## 0.1.0
 

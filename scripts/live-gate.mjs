@@ -15,8 +15,8 @@
 // the two forms of Make's REST universal module template.
 //
 // A case marked `quotaExempt` spends no test document, and ci.yml's preflight does not count
-// it; the gate allows the mark only on a request to a path openapi.json describes as costing
-// no quota.
+// it; the gate allows the mark only on an operation openapi.json describes as costing no
+// quota.
 //
 // Usage: BELIQ_API_KEY=blq_test_... node scripts/live-gate.mjs [--write-samples]
 // --write-samples writes a module's samples.json from the output of its case marked `sample`.
@@ -28,12 +28,14 @@ import { isDeepStrictEqual } from 'node:util'
 import { readApp, ROOT } from './app.mjs'
 import { isFileRef, loadFile, readManifest, refName } from './fixtures.mjs'
 import { lookup, resolve, slashTemplatePath, templates } from './iml.mjs'
+import { deref, fetchSpec } from './openapi.mjs'
 
 const REQUEST_TIMEOUT_MS = 60_000
 const CASES_DIR = join(ROOT, 'test', 'live')
-// openapi.json's summary of GET /v1/me: "Account, plan, and quota context for the calling API
-// key (no quota cost)." No other path is described so.
-export const QUOTA_EXEMPT_PATHS = ['/v1/me']
+// openapi.json says which operation spends no quota in its summary: GET /v1/me reads "Account,
+// plan, and quota context for the calling API key (no quota cost)."
+export const QUOTA_EXEMPT_MARK = '(no quota cost)'
+export const isQuotaExempt = (operation) => Boolean(operation?.summary?.includes(QUOTA_EXEMPT_MARK))
 
 // The directives each file may use. A directive outside these lists changes what Make sends
 // or returns in a way the gate does not model, so it fails the gate instead of being skipped.
@@ -53,17 +55,6 @@ export function unmodelled(directives, allowed, where) {
   return Object.keys(directives)
     .filter((key) => !allowed.includes(key))
     .map((key) => `${where}: the gate does not model the directive \`${key}\``)
-}
-
-export function deref(schema, spec) {
-  let current = schema
-  while (current && current.$ref) {
-    current = current.$ref
-      .replace(/^#\//, '')
-      .split('/')
-      .reduce((node, key) => node?.[key], spec)
-  }
-  return current
 }
 
 // A named property of a schema, looked up in its `properties` and its allOf/anyOf/oneOf
@@ -248,9 +239,7 @@ export async function runGate({ apiKey, writeSamples = false, log = console.log 
   }
   if (failures.length) return failures
 
-  const specRes = await fetch(new URL('/openapi.json', base.baseUrl), { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
-  if (!specRes.ok) throw new Error(`openapi.json answered ${specRes.status}`)
-  const spec = await specRes.json()
+  const spec = await fetchSpec(base.baseUrl)
   const manifest = await readManifest()
 
   const connScope = { parameters: { apiKey } }
@@ -277,15 +266,22 @@ export async function runGate({ apiKey, writeSamples = false, log = console.log 
     }
     for (const [i, c] of cases.entries()) {
       const label = `${m.name} [${caseName(c.parameters) || i}]`
-      const scope = { connection: { apiKey }, parameters: await loadParameters(c.parameters, manifest) }
-      const { url, init } = buildRequest(base.baseUrl, base.headers, api, scope)
+      let url
+      let init
+      try {
+        const scope = { connection: { apiKey }, parameters: await loadParameters(c.parameters, manifest) }
+        ;({ url, init } = buildRequest(base.baseUrl, base.headers, api, scope))
+      } catch (err) {
+        failures.push(`${label}: the request could not be built: ${err.message}`)
+        continue
+      }
       const operation = spec.paths?.[url.pathname]?.[init.method.toLowerCase()]
       if (!operation) {
         failures.push(`${label}: openapi.json has no ${init.method} ${url.pathname}`)
         continue
       }
-      if (c.quotaExempt && !QUOTA_EXEMPT_PATHS.includes(url.pathname)) {
-        failures.push(`${label}: marked quotaExempt, but ${url.pathname} spends a test document`)
+      if (c.quotaExempt && !isQuotaExempt(operation)) {
+        failures.push(`${label}: marked quotaExempt, but openapi.json does not say ${init.method} ${url.pathname} costs no quota`)
         continue
       }
       const res = await send(url, init)
@@ -305,7 +301,9 @@ export async function runGate({ apiKey, writeSamples = false, log = console.log 
       if (failures.length !== before) continue
       log(`${label}: 200, ${templates(api.response.output).length} output fields checked`)
       if (writeSamples && c.sample) {
-        await writeFile(m.sections.samples.file, `${JSON.stringify(output, null, 2)}\n`)
+        // An output field the answer did not carry is written as null, so the sample names
+        // every field the module maps and shows which ones this document left empty.
+        await writeFile(m.sections.samples.file, `${JSON.stringify(output, (k, v) => (v === undefined ? null : v), 2)}\n`)
         log(`${label}: wrote ${m.name}/samples.json`)
       }
     }

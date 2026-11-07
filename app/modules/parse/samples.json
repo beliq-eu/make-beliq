@@ -2,6 +2,8 @@
   "format": "cii",
   "profileDetected": "en16931",
   "profileUrn": "urn:cen.eu:en16931:2017",
+  "businessProcessId": null,
+  "franceCtcDetected": null,
   "invoice": {
     "lines": [
       {
@@ -263,5 +265,5 @@
     "profileDetected": "en16931",
     "profileUrn": "urn:cen.eu:en16931:2017"
   },
-  "requestId": "c7372ecd-0f83-43cc-b5b9-051aa0a7fd95"
+  "requestId": "83cac2c2-af66-4ce4-914b-a5bed46a7dc1"
 }
