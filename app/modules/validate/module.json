@@ -1,0 +1,6 @@
+{
+  "name": "validate",
+  "typeId": 4,
+  "label": "Validate an e-invoice",
+  "description": "Checks an XML or PDF e-invoice against the rule packs and schemas beliq lists for its format. Returns valid or invalid with the verification badge, the ruleset fingerprint and the findings."
+}

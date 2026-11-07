@@ -1,0 +1,15 @@
+{
+  "baseUrl": "https://api.beliq.eu",
+  "headers": {
+    "x-api-key": "{{connection.apiKey}}",
+    "User-Agent": "make-beliq/0.1.0"
+  },
+  "response": {
+    "error": {
+      "message": "[{{statusCode}}] {{ifempty(body.error.code; 'ERROR')}}: {{ifempty(body.error.message; 'beliq rejected the request.')}}"
+    }
+  },
+  "log": {
+    "sanitize": ["request.headers.x-api-key"]
+  }
+}

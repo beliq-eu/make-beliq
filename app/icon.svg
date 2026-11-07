@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="512" height="512">
+  <!-- The beliq mark alone, without its background tile: Make keeps only the shape of the
+       icon's opaque pixels, draws it in white and puts it on the app's theme colour. -->
+  <g fill="none" stroke="#57534e" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"
+     transform="translate(90 90) scale(0.82) translate(-90 -90)">
+    <circle cx="90" cy="90" r="80" />
+    <circle cx="90" cy="90" r="56" />
+    <circle cx="90" cy="90" r="32" />
+    <line x1="170" y1="90" x2="170" y2="170" />
+  </g>
+</svg>

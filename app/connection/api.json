@@ -1,0 +1,16 @@
+{
+  "url": "https://api.beliq.eu/v1/me",
+  "method": "GET",
+  "headers": {
+    "x-api-key": "{{parameters.apiKey}}"
+  },
+  "response": {
+    "valid": "{{statusCode = 200}}",
+    "error": {
+      "message": "[{{statusCode}}] beliq did not accept this API key. Create or check a key in the beliq dashboard (https://dashboard.beliq.eu) under API Keys."
+    }
+  },
+  "log": {
+    "sanitize": ["request.headers.x-api-key"]
+  }
+}

@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      # Named one by one: a glob that matches nothing makes node --test exit 0.
+      - name: Unit tests (no network)
+        run: node --test test/iml.test.mjs test/app.test.mjs test/live-gate.test.mjs test/deploy.test.mjs
+
+      - name: Scrub check (no em-dash)
+        run: bash scripts/scrub-check.sh
+
+  # The live gate sends the app's own requests to the live beliq API: GET /v1/me, which is
+  # quota-exempt, and one document for each case in test/live/*.json.
+  # BELIQ_API_KEY is a `blq_test_` sandbox key: it runs the full rule stack but draws on the
+  # sandbox allowance instead of the plan quota.
+  #
+  # Gating at job level rather than per step means a run that cannot be exercised reports as
+  # skipped, which no one can misread as verified.
+  preflight:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # A key that is absent (forks) and an allowance that is spent are the same condition
+      # from the gate's point of view: the contract could not be checked, which is not the
+      # same as the contract being broken.
+      - id: decide
+        env:
+          BELIQ_API_KEY: ${{ secrets.BELIQ_API_KEY }}
+        run: |
+          set -uo pipefail
+
+          needed="$(jq -s '[.[].cases[]] | length' test/live/*.json)"
+
+          if [ -z "${BELIQ_API_KEY:-}" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "BELIQ_API_KEY is not set; skipping the live gate."
+            exit 0
+          fi
+
+          body="$(curl -sS --max-time 30 \
+            -H "x-api-key: $BELIQ_API_KEY" \
+            https://api.beliq.eu/v1/me)" || body=''
+          remaining="$(printf '%s' "$body" | jq -r '.data.quota.remaining // empty')" || remaining=''
+          resets="$(printf '%s' "$body" | jq -r '.data.quota.resetsAt // empty')" || resets=''
+          resets="${resets:-unknown}"
+
+          # An unreadable answer is not a reason to skip: /v1/me is an optimisation, and a
+          # real API outage should surface as a red live job rather than a quiet one.
+          if ! printf '%s' "$remaining" | grep -qE '^[0-9]+$'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "could not read the remaining quota from /v1/me; running the live gate anyway"
+            exit 0
+          fi
+
+          echo "quota remaining: $remaining, resets $resets"
+          if [ "$remaining" -lt "$needed" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::beliq API allowance is spent ($remaining of $needed documents left, resets $resets), so the live contract was NOT verified by this run."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  live:
+    needs: preflight
+    if: needs.preflight.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Live gate
+        env:
+          BELIQ_API_KEY: ${{ secrets.BELIQ_API_KEY }}
+        run: node scripts/live-gate.mjs
+
+  guard:
+    uses: beliq-eu/.github/.github/workflows/guard.yml@73d621a98f840c7b93e51d5d9028d9ffc49a55de # main

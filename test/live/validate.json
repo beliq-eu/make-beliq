@@ -1,0 +1,35 @@
+{
+  "$comment": "The live gate sends the validate module's request once per case. `present` names output fields that must hold a value for this fixture: both files are ones a ruleset runs on, so the verdict carries its badge and a ruleset fingerprint.",
+  "cases": [
+    {
+      "parameters": {
+        "data": {
+          "fixture": "xrechnung-testsuite/01.01a-INVOICE_uncefact.xml"
+        },
+        "contentType": "application/xml"
+      },
+      "present": [
+        "verdict.valid",
+        "verdict.verificationBadge",
+        "verdict.verificationBadgeLabel",
+        "rulesetSha256",
+        "requestId"
+      ]
+    },
+    {
+      "parameters": {
+        "data": {
+          "fixture": "mustangproject/EN16931_Einfach.pdf"
+        },
+        "contentType": "application/pdf"
+      },
+      "present": [
+        "verdict.valid",
+        "verdict.verificationBadge",
+        "verdict.verificationBadgeLabel",
+        "rulesetSha256",
+        "requestId"
+      ]
+    }
+  ]
+}

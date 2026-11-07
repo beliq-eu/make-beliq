@@ -1,0 +1,20 @@
+[
+  {
+    "name": "data",
+    "type": "buffer",
+    "label": "File",
+    "required": true,
+    "semantic": "file:data",
+    "help": "The e-invoice file: an XML invoice, or a PDF with the invoice XML embedded."
+  },
+  {
+    "name": "contentType",
+    "type": "select",
+    "label": "File type",
+    "required": true,
+    "options": [
+      { "label": "XML", "value": "application/xml" },
+      { "label": "PDF", "value": "application/pdf" }
+    ]
+  }
+]

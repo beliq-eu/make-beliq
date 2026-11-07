@@ -1,0 +1,63 @@
+{
+  "verdict": {
+    "valid": true,
+    "verificationBadge": "authority-verified",
+    "verificationBadgeLabel": "Authority-checked"
+  },
+  "format": "cii",
+  "rulesetSha256": "979a8ddf11c41c1357b026c1ab3fb66cf0025786f9d4fb4f27e07e759b474ffa",
+  "errors": [],
+  "warnings": [
+    {
+      "ruleId": "BR-DE-TMP-32",
+      "severity": "info",
+      "message": "[BR-DE-TMP-32] Eine Rechnung sollte zur Angabe des Liefer-/Leistungsdatums entweder BT-72 \"Actual delivery date\", BG-14 \"Invoicing period\" oder in jeder Rechnungsposition BG-26 \"Invoice line period\" enthalten.",
+      "location": "/Q{urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100}CrossIndustryInvoice[1]/Q{urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100}SupplyChainTradeTransaction[1]"
+    }
+  ],
+  "data": {
+    "valid": true,
+    "format": "cii",
+    "errors": [],
+    "warnings": [
+      {
+        "ruleId": "BR-DE-TMP-32",
+        "severity": "info",
+        "message": "[BR-DE-TMP-32] Eine Rechnung sollte zur Angabe des Liefer-/Leistungsdatums entweder BT-72 \"Actual delivery date\", BG-14 \"Invoicing period\" oder in jeder Rechnungsposition BG-26 \"Invoice line period\" enthalten.",
+        "location": "/Q{urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100}CrossIndustryInvoice[1]/Q{urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100}SupplyChainTradeTransaction[1]"
+      }
+    ],
+    "sha256": "727b51982a84c9b406599a7384783570910440ed405c9bb6d918b22442636886",
+    "rulesetSha256": "979a8ddf11c41c1357b026c1ab3fb66cf0025786f9d4fb4f27e07e759b474ffa",
+    "rulesetArtifacts": [
+      {
+        "key": "cii_xsd",
+        "version": "D16B",
+        "fileSha256": "b9798aafcba039d0630f0015ffae5092a1758bf924d19d97b6bf0bf9d95f22a0"
+      },
+      {
+        "key": "en16931_cii_schematron",
+        "version": "1.3.16",
+        "fileSha256": "0b234dea2bbfee739b7761e607a992c17fab88773014ef56355b6158cfb1cc53"
+      },
+      {
+        "key": "xrechnung_schematron",
+        "version": "XRechnung-2.6.0",
+        "fileSha256": "30e64d8bddf0bebded89e2bedab0b4856f0c4f1e852bd303e1957a7d627c0e6c"
+      },
+      {
+        "key": "xrechnung_severity_overrides",
+        "version": "2026-08-31",
+        "fileSha256": "3db6bcddfd30cc9d51ac7c6c156ae2621c27d471a65f9db98db5c3b081ab6713"
+      }
+    ],
+    "driftCheckedAt": "2026-11-07T04:10:16Z",
+    "profileDetected": "xrechnung",
+    "verificationTier": "conformance-verified",
+    "verificationBadge": "authority-verified",
+    "verificationBadgeLabel": "Authority-checked",
+    "schematronVersion": "1.3.16",
+    "ciusVersion": "XRechnung-2.6.0"
+  },
+  "requestId": "8cd509b5-2885-4f0e-a642-a87528d3a28c"
+}
