@@ -6,7 +6,7 @@
   },
   "response": {
     "error": {
-      "message": "[{{statusCode}}] {{ifempty(body.error.code; 'ERROR')}}: {{ifempty(body.error.message; 'beliq rejected the request.')}}"
+      "message": "[{{statusCode}}] {{ifempty(body.error.code; 'no beliq error code in the answer')}}: {{ifempty(body.error.message; 'no beliq error message in the answer')}}"
     }
   },
   "log": {

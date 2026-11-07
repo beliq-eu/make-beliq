@@ -27,15 +27,17 @@ const CASES_DIR = join(ROOT, 'test', 'live')
 
 // The directives each file may use. A directive outside these lists changes what Make sends
 // or returns in a way the gate does not model, so it fails the gate instead of being skipped.
-// base.json's `response.error` and `log`, and the connection's `response.valid`, `error` and
-// `log`, shape only Make's error text, its log and its verdict on the connection test, so
-// the gate reads none of them.
+// base.json's `response.error` and `log`, and the connection's `response.error` and `log`,
+// shape only Make's error text and its log, so the gate reads none of them. The connection's
+// `response.valid` decides Make's verdict on the connection test; the gate models it only in
+// its one form below and fails on any other.
 const MODULE_DIRECTIVES = ['url', 'method', 'type', 'headers', 'qs', 'body', 'response']
 const MODULE_RESPONSE_DIRECTIVES = ['output']
 const BASE_DIRECTIVES = ['baseUrl', 'headers', 'response', 'log']
 const BASE_RESPONSE_DIRECTIVES = ['error']
 const CONNECTION_DIRECTIVES = ['url', 'method', 'headers', 'response', 'log']
 const CONNECTION_RESPONSE_DIRECTIVES = ['valid', 'error']
+const CONNECTION_VALID = '{{statusCode = 200}}'
 
 export function unmodelled(directives, allowed, where) {
   return Object.keys(directives)
@@ -177,6 +179,9 @@ export async function runGate({ apiKey, writeSamples = false, log = console.log 
     const api = m.sections.api.json
     failures.push(...unmodelled(api, MODULE_DIRECTIVES, `${m.name}/api.json`))
     failures.push(...unmodelled(api.response ?? {}, MODULE_RESPONSE_DIRECTIVES, `${m.name}/api.json response`))
+  }
+  if (conn.response?.valid !== CONNECTION_VALID) {
+    failures.push(`connection/api.json: response.valid is not ${CONNECTION_VALID}, the one form the gate models`)
   }
   if (failures.length) return failures
 
