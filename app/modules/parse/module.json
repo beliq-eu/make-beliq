@@ -2,5 +2,5 @@
   "name": "parse",
   "typeId": 4,
   "label": "Parse an e-invoice",
-  "description": "Reads the fields of an XML or PDF e-invoice into structured data. It checks nothing and gives no verdict; Validate does that. A field the document did not carry stays empty, and Warnings names what the answer does not return."
+  "description": "Reads the fields of an XML or PDF e-invoice into structured data. It checks nothing and gives no verdict; Validate does that. An empty field was not read from the document: the document may not carry it, or beliq may not return it. Warnings names what the answer does not return."
 }

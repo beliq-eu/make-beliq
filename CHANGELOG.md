@@ -14,7 +14,8 @@ app, and is not this one.
   not return. Beside them: the whole `data` object, and `requestId` from the `x-request-id`
   header. Its interface is written by `scripts/parse-interface.mjs` from the API's
   `openapi.json`, and CI fails when the two drift apart. No field gets a default: a field
-  the document did not carry stays empty. The module checks nothing and gives no verdict.
+  that was not read from the document stays empty, and `warnings` says which ones beliq
+  does not return. The module checks nothing and gives no verdict.
 - **Make an API call** sends a request to a path relative to `https://api.beliq.eu`, with
   the connection's API key, the method, headers, query string and body the user enters.
   Its output holds the answer's `body`, `headers` and `statusCode`.

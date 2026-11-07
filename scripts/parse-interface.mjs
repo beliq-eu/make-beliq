@@ -2,7 +2,7 @@
 // Writes the Parse module's interface.json and its output mapping, the `response.output` of its
 // api.json, from the 200 answer of POST /v1/parse in the API's openapi.json. So the fields Make
 // offers before a first run are the ones the API declares, under their own names, and none gets
-// a default: a field the document did not carry stays empty in Make.
+// a default: a field that was not read from the document stays empty in Make.
 //
 //   node scripts/parse-interface.mjs            fetch openapi.json and write both files
 //   node scripts/parse-interface.mjs --check    write nothing; exit 1 when a committed file

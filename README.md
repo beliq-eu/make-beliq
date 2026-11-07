@@ -23,9 +23,9 @@ Its output:
 
 The module sends the file you map, a CII or UBL XML invoice or a PDF with the invoice XML embedded, as the body of [`POST /v1/parse`](https://docs.beliq.eu/api-reference/parse/). It sends nothing else. It reads the invoice's fields and checks nothing: it gives no verdict and no badge, so use **Validate an e-invoice** to know whether the file passes its format's rules.
 
-Its output holds each key of the answer's `data` under its own name: **Format**, **Profile detected**, **Profile URN**, **Business process ID**, **France CTC detected**, **Invoice** (number, dates, parties, lines, delivery and totals) and **Warnings**, then **Full response data** and **Request ID**. A field the document did not carry stays empty: the module fills in no default. **Warnings** names what the answer does not return, so read it before you treat an empty field as absent from the invoice.
+Its output holds each key of the answer's `data` under its own name: **Format**, **Profile detected**, **Profile URN**, **Business process ID**, **France CTC detected**, **Invoice** (number, dates, parties, lines, delivery and totals) and **Warnings**, then **Full response data** and **Request ID**. A field that was not read from the document stays empty: the module fills in no default. **Warnings** names what the answer does not return, so read it before you treat an empty field as absent from the invoice.
 
-`scripts/parse-interface.mjs` writes the module's interface and output mapping from the `/v1/parse` answer in [the API's openapi.json](https://api.beliq.eu/openapi.json), and CI runs it with `--check` on every pull request and push.
+`scripts/parse-interface.mjs` writes the module's interface and output mapping from the `/v1/parse` answer in [the API's openapi.json](https://api.beliq.eu/openapi.json), and CI runs it with `--check` on every pull request and every push to `main`.
 
 ## Make an API call
 
