@@ -1,0 +1,9 @@
+[
+  {
+    "name": "apiKey",
+    "type": "password",
+    "label": "API key",
+    "required": true,
+    "help": "Your beliq API key. Create one in the beliq dashboard (https://dashboard.beliq.eu) under API Keys."
+  }
+]

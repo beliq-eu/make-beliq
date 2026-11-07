@@ -1,0 +1,24 @@
+{
+  "url": "/v1/validate",
+  "method": "POST",
+  "type": "binary",
+  "headers": {
+    "Content-Type": "{{parameters.contentType}}"
+  },
+  "body": "{{parameters.data}}",
+  "response": {
+    "output": {
+      "verdict": {
+        "valid": "{{body.data.valid}}",
+        "verificationBadge": "{{body.data.verificationBadge}}",
+        "verificationBadgeLabel": "{{body.data.verificationBadgeLabel}}"
+      },
+      "format": "{{body.data.format}}",
+      "rulesetSha256": "{{body.data.rulesetSha256}}",
+      "errors": "{{body.data.errors}}",
+      "warnings": "{{body.data.warnings}}",
+      "data": "{{body.data}}",
+      "requestId": "{{headers.`x-request-id`}}"
+    }
+  }
+}

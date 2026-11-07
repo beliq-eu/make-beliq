@@ -1,0 +1,18 @@
+[
+  {
+    "name": "verdict",
+    "type": "collection",
+    "label": "Verdict",
+    "spec": [
+      { "name": "valid", "type": "boolean", "label": "Valid" },
+      { "name": "verificationBadge", "type": "text", "label": "Verification badge code" },
+      { "name": "verificationBadgeLabel", "type": "text", "label": "Verification badge" }
+    ]
+  },
+  { "name": "format", "type": "text", "label": "Format" },
+  { "name": "rulesetSha256", "type": "text", "label": "Ruleset SHA-256" },
+  { "name": "errors", "type": "array", "label": "Errors" },
+  { "name": "warnings", "type": "array", "label": "Warnings" },
+  { "name": "data", "type": "collection", "label": "Full response data" },
+  { "name": "requestId", "type": "text", "label": "Request ID" }
+]

@@ -1,0 +1,24 @@
+{
+  "$comment": "Files the live gate sends, each a byte copy of its source at a pinned commit, kept under test/vendor/ with its upstream's licence. test/app.test.mjs checks every sha256 against the file.",
+  "fixtures": [
+    {
+      "file": "xrechnung-testsuite/01.01a-INVOICE_uncefact.xml",
+      "contentType": "application/xml",
+      "source": "https://github.com/itplr-kosit/xrechnung-testsuite/blob/v2026-08-31/src/test/business-cases/standard/01.01a-INVOICE_uncefact.xml",
+      "commit": "44c3905c69ca236aa3b94c04be1b7e9bd066ba03",
+      "sha256": "727b51982a84c9b406599a7384783570910440ed405c9bb6d918b22442636886",
+      "license": "Apache-2.0",
+      "licenseFile": "xrechnung-testsuite/LICENSE"
+    },
+    {
+      "file": "mustangproject/EN16931_Einfach.pdf",
+      "contentType": "application/pdf",
+      "source": "https://github.com/ZUGFeRD/mustangproject/blob/b04466afd9035b2925d33b286954b270109a01d9/library/src/test/resources/EN16931_Einfach.pdf",
+      "commit": "b04466afd9035b2925d33b286954b270109a01d9",
+      "sha256": "05b5a382db8fdc60d1e9ec31fef7fb09c91d68413b9187f7ca116aed116ed1d0",
+      "license": "Apache-2.0",
+      "licenseFile": "mustangproject/LICENSE",
+      "noticeFile": "mustangproject/NOTICE"
+    }
+  ]
+}
