@@ -2,7 +2,7 @@
   "baseUrl": "https://api.beliq.eu",
   "headers": {
     "x-api-key": "{{connection.apiKey}}",
-    "User-Agent": "make-beliq/0.2.0"
+    "User-Agent": "make-beliq/0.3.0"
   },
   "response": {
     "error": {

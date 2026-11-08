@@ -31,6 +31,10 @@ Its output holds each key of the answer's `data` under its own name: **Format**,
 
 The module sends a request to any path of the beliq API, relative to `https://api.beliq.eu`, such as `/v1/me`, with your connection's API key. You enter the method, the headers, the query string and the body. Its output is the answer's `body`, `headers` and `statusCode`. The paths and their requests are described at [docs.beliq.eu](https://docs.beliq.eu) and in [openapi.json](https://api.beliq.eu/openapi.json). A path that spends documents spends them as it does outside Make.
 
+## Example scenario
+
+[`blueprints/validate-and-parse.json`](./blueprints/validate-and-parse.json) is a scenario to import in Make, with **Import blueprint** in the scenario editor's menu. It downloads two public test invoices, KoSIT's XRechnung test file `01.01a-INVOICE_uncefact.xml` and the Mustang project's `EN16931_Einfach.pdf`, each at the commit `test/fixtures.json` names. It validates both, parses the PDF and calls `GET /v1/me`. After the import, pick your beliq connection in each of the four beliq modules. One run spends three documents of your key's quota, two validations and one parse; `GET /v1/me` spends none.
+
 ## Layout
 
 `app/` holds one JSON file for each section Make stores: `app.json`, `base.json` (the base URL `https://api.beliq.eu`, the API key header, and a `User-Agent` of `make-beliq/<version>`), `groups.json`, `connection/`, and one folder for each module. `app/icon.svg` is the source of `app/icon.png`: Make keeps only the shape of the icon's opaque pixels, draws it in white and puts it on the theme colour from `app.json`.
@@ -38,12 +42,12 @@ The module sends a request to any path of the beliq API, relative to `https://ap
 ## Tests
 
 ```bash
-node --test test/iml.test.mjs test/app.test.mjs test/live-gate.test.mjs test/deploy.test.mjs test/parse-interface.test.mjs
+node --test test/iml.test.mjs test/app.test.mjs test/live-gate.test.mjs test/deploy.test.mjs test/parse-interface.test.mjs test/blueprint.test.mjs
 bash scripts/scrub-check.sh
 node scripts/parse-interface.mjs --check
 ```
 
-The tests and the scrub need no network. They check that each module's output and interface name the same fields and that its samples hold none the interface does not declare, that every template in a request or an output is a plain path lookup or one of the two forms of Make's universal module template, that every module's url is relative to the base URL, the vendored fixtures' checksums, and the deploy script against a local server that answers like Make's API. The last command fetches `openapi.json` and fails when the Parse module's files differ from what it gives.
+The tests and the scrub need no network. They check that each module's output and interface name the same fields and that its samples hold none the interface does not declare, that every template in a request or an output is a plain path lookup or one of the two forms of Make's universal module template, that every module's url is relative to the base URL, the vendored fixtures' checksums, that the example scenario names only the app's modules and their fields, fetches only the pinned fixtures and carries no connection or other ID of the organisation it was exported from, and the deploy script against a local server that answers like Make's API. The last command fetches `openapi.json` and fails when the Parse module's files differ from what it gives.
 
 The live gate sends the requests the app's files describe to the live API and checks the answers against [the API's openapi.json](https://api.beliq.eu/openapi.json). It runs in CI on a push to `main`, and needs a test key:
 
