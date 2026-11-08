@@ -33,7 +33,7 @@ The module sends a request to any path of the beliq API, relative to `https://ap
 
 ## Example scenario
 
-[`blueprints/validate-and-parse.json`](./blueprints/validate-and-parse.json) is a scenario to import in Make, with **Import blueprint** in the scenario editor's menu. It downloads two public test invoices, KoSIT's XRechnung test file `01.01a-INVOICE_uncefact.xml` and the Mustang project's `EN16931_Einfach.pdf`, each at the commit `test/fixtures.json` names. It validates both, parses the PDF and calls `GET /v1/me`. After the import, pick your beliq connection in each of the four beliq modules. One run spends three documents of your key's quota, two validations and one parse; `GET /v1/me` spends none.
+[`blueprints/validate-and-parse.json`](./blueprints/validate-and-parse.json) is a scenario to import in a Make organisation that installed the app, with **Import blueprint** in the scenario editor's menu. It downloads two public test invoices, KoSIT's XRechnung test file `01.01a-INVOICE_uncefact.xml` and the Mustang project's `EN16931_Einfach.pdf`, each at the commit `test/fixtures.json` names. It validates both, parses the PDF and calls `GET /v1/me`. After the import, pick your beliq connection in each of the four beliq modules. One run spends three documents of your key's quota, two validations and one parse; `GET /v1/me` spends none.
 
 ## Layout
 

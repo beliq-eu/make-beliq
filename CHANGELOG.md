@@ -7,9 +7,9 @@ app, and is not this one.
 
 ## 0.3.0
 
-- The app's description on Make reads "Validate and parse e-invoices with beliq." A deploy
-  of this version follows the publishing of Parse and Make an API call, so the description
-  names only modules every installer can use.
+- The app's description on Make reads "Validate and parse e-invoices with beliq." Deploy this
+  version only once Parse and Make an API call are published: a deploy shows the description
+  to every organisation that installed the app at once.
 - `blueprints/validate-and-parse.json` is an example scenario: it downloads the two test
   invoices the live gate sends, validates both, parses the PDF and calls `GET /v1/me`. It was
   exported from a scenario that ran in Make, with the connection and every other ID of the
