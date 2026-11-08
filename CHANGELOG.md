@@ -5,6 +5,17 @@ A version is what one deploy puts into the app on Make. `base.json` sends it in 
 numbers the app itself as version 1; that number changes only with a breaking change to the
 app, and is not this one.
 
+## 0.3.0
+
+- The app's description on Make reads "Validate and parse e-invoices with beliq." Deploy this
+  version only once Parse and Make an API call are published: a deploy shows the description
+  to every organisation that installed the app at once.
+- `blueprints/validate-and-parse.json` is an example scenario: it downloads the two test
+  invoices the live gate sends, validates both, parses the PDF and calls `GET /v1/me`. It was
+  exported from a scenario that ran in Make, with the connection and every other ID of the
+  exporting organisation removed. `test/blueprint.test.mjs` checks it against the app's
+  modules and fields and against `test/fixtures.json`.
+
 ## 0.2.0
 
 - **Parse an e-invoice** sends an XML or PDF file as the request body to `POST /v1/parse`.

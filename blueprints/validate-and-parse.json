@@ -1,0 +1,338 @@
+{
+  "name": "beliq: validate and parse e-invoices",
+  "flow": [
+    {
+      "id": 1,
+      "module": "http:ActionGetFile",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false
+      },
+      "mapper": {
+        "url": "https://raw.githubusercontent.com/itplr-kosit/xrechnung-testsuite/44c3905c69ca236aa3b94c04be1b7e9bd066ba03/src/test/business-cases/standard/01.01a-INVOICE_uncefact.xml",
+        "method": "get",
+        "serializeUrl": false,
+        "shareCookies": false
+      },
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 2,
+      "module": "app#beliq-pk8e4f:validate",
+      "version": 1,
+      "parameters": {
+        "__IMTCONN__": null
+      },
+      "mapper": {
+        "data": "{{1.data}}",
+        "contentType": "application/xml"
+      },
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "contentType": {
+              "mode": "chose",
+              "label": "XML"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:app#beliq-pk8e4f",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "data",
+            "type": "buffer",
+            "label": "File",
+            "required": true
+          },
+          {
+            "name": "contentType",
+            "type": "select",
+            "label": "File type",
+            "required": true,
+            "validate": {
+              "enum": [
+                "application/xml",
+                "application/pdf"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "module": "http:ActionGetFile",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false
+      },
+      "mapper": {
+        "url": "https://raw.githubusercontent.com/ZUGFeRD/mustangproject/b04466afd9035b2925d33b286954b270109a01d9/library/src/test/resources/EN16931_Einfach.pdf",
+        "method": "get",
+        "serializeUrl": false,
+        "shareCookies": false
+      },
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 4,
+      "module": "app#beliq-pk8e4f:validate",
+      "version": 1,
+      "parameters": {
+        "__IMTCONN__": null
+      },
+      "mapper": {
+        "data": "{{3.data}}",
+        "contentType": "application/pdf"
+      },
+      "metadata": {
+        "designer": {
+          "x": 900,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "contentType": {
+              "mode": "chose",
+              "label": "PDF"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:app#beliq-pk8e4f",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "data",
+            "type": "buffer",
+            "label": "File",
+            "required": true
+          },
+          {
+            "name": "contentType",
+            "type": "select",
+            "label": "File type",
+            "required": true,
+            "validate": {
+              "enum": [
+                "application/xml",
+                "application/pdf"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "module": "app#beliq-pk8e4f:parse",
+      "version": 1,
+      "parameters": {
+        "__IMTCONN__": null
+      },
+      "mapper": {
+        "data": "{{3.data}}",
+        "contentType": "application/pdf"
+      },
+      "metadata": {
+        "designer": {
+          "x": 1200,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "contentType": {
+              "mode": "chose",
+              "label": "PDF"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:app#beliq-pk8e4f",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "data",
+            "type": "buffer",
+            "label": "File",
+            "required": true
+          },
+          {
+            "name": "contentType",
+            "type": "select",
+            "label": "File type",
+            "required": true,
+            "validate": {
+              "enum": [
+                "application/xml",
+                "application/pdf"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "module": "app#beliq-pk8e4f:makeApiCall",
+      "version": 1,
+      "parameters": {
+        "__IMTCONN__": null
+      },
+      "mapper": {
+        "url": "/v1/me",
+        "method": "GET",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 1500,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "method": {
+              "mode": "chose",
+              "label": "GET"
+            },
+            "headers": {
+              "mode": "chose",
+              "items": [
+                null
+              ]
+            },
+            "qs": {
+              "mode": "chose"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:app#beliq-pk8e4f",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "url",
+            "type": "text",
+            "label": "URL",
+            "required": true
+          },
+          {
+            "name": "method",
+            "type": "select",
+            "label": "Method",
+            "required": true,
+            "validate": {
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+              ]
+            }
+          },
+          {
+            "name": "headers",
+            "type": "array",
+            "label": "Headers",
+            "spec": [
+              {
+                "name": "key",
+                "type": "text",
+                "label": "Key"
+              },
+              {
+                "name": "value",
+                "type": "text",
+                "label": "Value"
+              }
+            ]
+          },
+          {
+            "name": "qs",
+            "type": "array",
+            "label": "Query String",
+            "spec": [
+              {
+                "name": "key",
+                "type": "text",
+                "label": "Key"
+              },
+              {
+                "name": "value",
+                "type": "text",
+                "label": "Value"
+              }
+            ]
+          },
+          {
+            "name": "body",
+            "type": "any",
+            "label": "Body"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "slots": null,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "notes": []
+  }
+}

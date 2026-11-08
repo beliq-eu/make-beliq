@@ -27,7 +27,7 @@ jobs:
 
       # Named one by one: a glob that matches nothing makes node --test exit 0.
       - name: Unit tests (no network)
-        run: node --test test/iml.test.mjs test/app.test.mjs test/live-gate.test.mjs test/deploy.test.mjs test/parse-interface.test.mjs
+        run: node --test test/iml.test.mjs test/app.test.mjs test/live-gate.test.mjs test/deploy.test.mjs test/parse-interface.test.mjs test/blueprint.test.mjs
 
       # Fetching openapi.json spends no document, so this runs on every pull request and push,
       # and a change to POST /v1/parse's answer fails the next run here rather than waiting
