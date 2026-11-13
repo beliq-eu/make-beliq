@@ -43,11 +43,10 @@ The module sends a request to any path of the beliq API, relative to `https://ap
 
 ```bash
 node --test test/iml.test.mjs test/app.test.mjs test/live-gate.test.mjs test/deploy.test.mjs test/parse-interface.test.mjs test/blueprint.test.mjs
-bash scripts/scrub-check.sh
 node scripts/parse-interface.mjs --check
 ```
 
-The tests and the scrub need no network. They check that each module's output and interface name the same fields and that its samples hold none the interface does not declare, that every template in a request or an output is a plain path lookup or one of the two forms of Make's universal module template, that every module's url is relative to the base URL, the vendored fixtures' checksums, that the example scenario names only the app's modules and their fields, fetches only the pinned fixtures and carries no connection or other ID of the organisation it was exported from, and the deploy script against a local server that answers like Make's API. The last command fetches `openapi.json` and fails when the Parse module's files differ from what it gives.
+The tests need no network. They check that each module's output and interface name the same fields and that its samples hold none the interface does not declare, that every template in a request or an output is a plain path lookup or one of the two forms of Make's universal module template, that every module's url is relative to the base URL, the vendored fixtures' checksums, that the example scenario names only the app's modules and their fields, fetches only the pinned fixtures and carries no connection or other ID of the organisation it was exported from, and the deploy script against a local server that answers like Make's API. The last command fetches `openapi.json` and fails when the Parse module's files differ from what it gives.
 
 The live gate sends the requests the app's files describe to the live API and checks the answers against [the API's openapi.json](https://api.beliq.eu/openapi.json). It runs in CI on a push to `main`, and needs a test key:
 
