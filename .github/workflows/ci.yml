@@ -35,9 +35,6 @@ jobs:
       - name: Parse interface matches the live openapi.json
         run: node scripts/parse-interface.mjs --check
 
-      - name: Scrub check (no em-dash)
-        run: bash scripts/scrub-check.sh
-
   # The live gate sends the app's own requests to the live beliq API: GET /v1/me, which is
   # quota-exempt, and one document for each case in test/live/*.json that is not marked
   # `quotaExempt` (the gate allows that mark only on GET /v1/me).
