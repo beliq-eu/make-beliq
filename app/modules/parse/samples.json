@@ -132,6 +132,12 @@
       ]
     }
   ],
+  "pdfInput": {
+    "containerChecked": false,
+    "attachmentFoundBy": "associated-file",
+    "attachmentCandidates": 1,
+    "attachmentName": "factur-x.xml"
+  },
   "data": {
     "format": "cii",
     "invoice": {
@@ -263,7 +269,13 @@
       }
     ],
     "profileDetected": "en16931",
-    "profileUrn": "urn:cen.eu:en16931:2017"
+    "profileUrn": "urn:cen.eu:en16931:2017",
+    "pdfInput": {
+      "containerChecked": false,
+      "attachmentFoundBy": "associated-file",
+      "attachmentCandidates": 1,
+      "attachmentName": "factur-x.xml"
+    }
   },
-  "requestId": "83cac2c2-af66-4ce4-914b-a5bed46a7dc1"
+  "requestId": "9b57b18b-5d63-453a-b27c-5b04a9198466"
 }
