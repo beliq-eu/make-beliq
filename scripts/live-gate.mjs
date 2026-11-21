@@ -168,7 +168,7 @@ export function resolveUrl(url, scope) {
   const value = lookup(path, scope)
   if (typeof value !== 'string' || !value) throw new Error(`the url parameter ${path.join('.')} is not a non-empty text`)
   if (value.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(value)) {
-    throw new Error(`the url value ${JSON.stringify(value)} is not modelled: what Make sends for it is unmeasured`)
+    throw new Error(`the url parameter ${path.join('.')} starts with two slashes or a scheme, which is not modelled: what Make sends for it is unmeasured`)
   }
   return value.startsWith('/') ? value : `/${value}`
 }
