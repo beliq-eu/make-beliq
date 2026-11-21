@@ -346,6 +346,33 @@
     ]
   },
   {
+    "name": "pdfInput",
+    "type": "collection",
+    "label": "Pdf input",
+    "spec": [
+      {
+        "name": "containerChecked",
+        "type": "boolean",
+        "label": "Container checked"
+      },
+      {
+        "name": "attachmentName",
+        "type": "text",
+        "label": "Attachment name"
+      },
+      {
+        "name": "attachmentFoundBy",
+        "type": "text",
+        "label": "Attachment found by"
+      },
+      {
+        "name": "attachmentCandidates",
+        "type": "integer",
+        "label": "Attachment candidates"
+      }
+    ]
+  },
+  {
     "name": "data",
     "type": "collection",
     "label": "Full response data"

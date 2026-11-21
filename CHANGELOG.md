@@ -5,6 +5,14 @@ A version is what one deploy puts into the app on Make. `base.json` sends it in 
 numbers the app itself as version 1; that number changes only with a breaking change to the
 app, and is not this one.
 
+## 0.3.1
+
+- Parse maps `pdfInput`, which beliq's API now returns when the document was a PDF: which
+  embedded file was read and how it was picked, how many embedded files that step accepted
+  (above 1, another file could be taken for the invoice), and `containerChecked`, always
+  false, because nothing checks the PDF around the invoice. The fields come from
+  `openapi.json` through `scripts/parse-interface.mjs`, and the sample from a live gate run.
+
 ## 0.3.0
 
 - The app's description on Make reads "Validate and parse e-invoices with beliq." Deploy this

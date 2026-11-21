@@ -15,6 +15,7 @@
       "franceCtcDetected": "{{body.data.franceCtcDetected}}",
       "invoice": "{{body.data.invoice}}",
       "warnings": "{{body.data.warnings}}",
+      "pdfInput": "{{body.data.pdfInput}}",
       "data": "{{body.data}}",
       "requestId": "{{headers.`x-request-id`}}"
     }
