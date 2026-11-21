@@ -124,6 +124,17 @@ test('a typed path keeps one slash, with or without its own; two slashes or a sc
   for (const url of ['//other.invalid/x', 'https://other.invalid/x', '', undefined]) assert.throws(() => at(url), String(url))
 })
 
+// The scope also holds the connection's key, so a refusal names the parameter and never prints
+// what it resolved to: the gate's failures go to the CI log.
+test('a refused url names its parameter, not its value', () => {
+  const scope = { connection: { apiKey: 'https://key.invalid/blq_test_secret' } }
+  assert.throws(() => resolveUrl('/{{connection.apiKey}}', scope), (err) => {
+    assert.ok(err.message.includes('connection.apiKey'), err.message)
+    assert.ok(!err.message.includes('blq_test_secret'), err.message)
+    return true
+  })
+})
+
 const universal = JSON.parse(readFileSync(join(ROOT, 'app', 'modules', 'makeApiCall', 'api.json'), 'utf8'))
 const call = (parameters) =>
   buildRequest('https://api.example.invalid', { 'x-api-key': '{{connection.apiKey}}' }, universal, { connection: { apiKey: 'k' }, parameters })
