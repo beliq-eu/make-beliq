@@ -40,8 +40,8 @@ const TOKEN_FILE = join(homedir(), '.config', 'beliq', 'make-api-token')
 const REQUEST_TIMEOUT_MS = 60_000
 const PLAN_ID_HEX = 16
 // On 2026-11-07 Make answered the read right after a PUT of groups with the copy from before
-// it, and held the pushed copy when read a minute later. So a read-back that differs is read
-// again for up to a minute before the deploy stops.
+// it, and held the pushed copy when read a minute later. So a read-back that differs, and the
+// check of the whole app after the deploy, read again after waits of up to a minute in all.
 const READBACK_WAITS_MS = [2_000, 4_000, 8_000, 16_000, 30_000]
 
 const appPath = `/sdk/apps/${APP}/${VERSION}`
@@ -180,23 +180,31 @@ export async function apply(request, app, commit, id, log = console.log, wait = 
   for (const a of actions) {
     const res = await request(a.method, a.path, { body: a.body, contentType: a.contentType })
     if (res.status < 200 || res.status > 299) throw new Error(`${a.label}: ${a.method} ${a.path} answered ${makeError(res)}`)
-    if (a.readback && !(await readBack(request, a, log, wait))) {
+    const readBack = async () => {
+      const back = await get(request, a.path)
+      return back.status === 200 && sameJson(back.text, a.expected)
+    }
+    if (a.readback && !(await untilMatch(readBack, a.label, log, wait))) {
       throw new Error(`${a.label}: Make's copy differs from the file after the push`)
     }
     log(`done  ${a.label}`)
   }
-  const after = await plan(request, app)
-  const left = after.actions.filter((a) => !a.always)
-  if (left.length) throw new Error(`after the deploy these still differ: ${left.map((a) => a.label).join('; ')}`)
+  let left = []
+  const nothingLeft = async () => {
+    left = (await plan(request, app)).actions.filter((a) => !a.always)
+    return left.length === 0
+  }
+  if (!(await untilMatch(nothingLeft, 'the whole app', log, wait))) {
+    throw new Error(`after the deploy these still differ: ${left.map((a) => a.label).join('; ')}`)
+  }
 }
 
-async function readBack(request, a, log, wait) {
+async function untilMatch(matches, label, log, wait) {
   for (let attempt = 0; ; attempt++) {
-    const back = await get(request, a.path)
-    if (back.status === 200 && sameJson(back.text, a.expected)) return true
+    if (await matches()) return true
     if (attempt === READBACK_WAITS_MS.length) return false
     const ms = READBACK_WAITS_MS[attempt]
-    log(`wait  ${a.label}: Make's copy is not the pushed one yet, reading it again in ${ms / 1000} s`)
+    log(`wait  ${label}: Make's copy is not the pushed one yet, reading it again in ${ms / 1000} s`)
     await wait(ms)
   }
 }

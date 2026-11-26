@@ -84,6 +84,8 @@ before(async () => {
 after(() => server.close())
 
 const writes = () => make.requests.filter((r) => r.method !== 'GET')
+// Every apply in a test gets this, so a broken read-back fails at once rather than sleeping.
+const noWait = async () => {}
 const sections = (p) => p.actions.filter((a) => !a.always).map((a) => a.label)
 
 test('a live app equal to the repo plans only what cannot be read back', async () => {
@@ -101,7 +103,7 @@ test('a section that differs is planned with its diff, pushed and read back', as
   const p = await plan(request, app)
   assert.deepEqual(sections(p), ['base'])
   assert.equal(p.diffs[0].label, 'base')
-  await apply(request, app, 'c0ffee', planId('c0ffee', p.actions), () => {})
+  await apply(request, app, 'c0ffee', planId('c0ffee', p.actions), () => {}, noWait)
   assert.equal(make.sections.get(`${appPath}/base`), app.base.text)
 })
 
@@ -110,7 +112,7 @@ test('an app field that differs is patched with that field only', async () => {
   make.app.theme = '#000000'
   const p = await plan(request, app)
   assert.deepEqual(sections(p), ['app theme'])
-  await apply(request, app, 'c0ffee', planId('c0ffee', p.actions), () => {})
+  await apply(request, app, 'c0ffee', planId('c0ffee', p.actions), () => {}, noWait)
   const patch = writes().find((r) => r.method === 'PATCH' && r.path === appPath)
   assert.deepEqual(JSON.parse(patch.body), { theme: app.app.json.theme })
 })
@@ -120,7 +122,7 @@ test('apply refuses a plan id that is not the current plan, before writing anyth
   const id = planId('c0ffee', (await plan(request, app)).actions)
   make.sections.set(`${appPath}/groups`, '[]')
   make.requests.length = 0
-  await assert.rejects(apply(request, app, 'c0ffee', id, () => {}), /run plan again/)
+  await assert.rejects(apply(request, app, 'c0ffee', id, () => {}, noWait), /run plan again/)
   assert.equal(writes().length, 0)
 })
 
@@ -130,7 +132,7 @@ test('a live section that changed after the plan was printed makes its id stale'
   const id = planId('c0ffee', (await plan(request, app)).actions)
   make.sections.set(`${appPath}/base`, '{"baseUrl":"https://b.invalid"}')
   make.requests.length = 0
-  await assert.rejects(apply(request, app, 'c0ffee', id, () => {}), /run plan again/)
+  await assert.rejects(apply(request, app, 'c0ffee', id, () => {}, noWait), /run plan again/)
   assert.equal(writes().length, 0)
 })
 
@@ -173,7 +175,7 @@ test('modules Make does not have yet are each created and filled, and none is pu
     assert.deepEqual(labels.slice(create + 1, create + 7), ['api', 'parameters', 'expect', 'interface', 'samples', 'scope'].map((s) => `module ${m.name} ${s}`))
   }
   assert.ok(!labels.some((l) => l.includes(`module ${kept.name} `)), 'a module equal to the repo is not pushed')
-  await apply(request, app, 'c0ffee', planId('c0ffee', p.actions), () => {})
+  await apply(request, app, 'c0ffee', planId('c0ffee', p.actions), () => {}, noWait)
   const posted = writes().filter((r) => r.method === 'POST' && r.path === `${appPath}/modules`).map((r) => JSON.parse(r.body))
   assert.deepEqual(posted.map((x) => x.name).sort(), added.map((m) => m.name).sort())
   assert.ok(posted.every((x) => x.connection === CONNECTION))
@@ -222,6 +224,42 @@ test('a read-back that is stale at first is read again until it matches', async 
   assert.equal(log.filter((line) => line.startsWith('wait  groups')).length, 2)
   assert.ok(log.includes('done  icon'))
   assert.deepEqual(JSON.parse(make.sections.get(groups)), app.groups.json)
+})
+
+test('the check after the deploy reads again when Make answers it with an old copy', async () => {
+  seedFromRepo()
+  const groups = `${appPath}/groups`
+  make.sections.set(groups, '[]')
+  const p = await plan(request, app)
+  // The read-back right after the PUT matches; the next read of groups, the check's, is old.
+  let reads = 0
+  const flaky = async (method, path, opts) => {
+    const pushed = make.requests.some((r) => r.method === 'PUT' && r.path === groups)
+    if (method === 'GET' && path === groups && pushed && ++reads === 2) return { status: 200, text: '[]' }
+    return request(method, path, opts)
+  }
+  const waits = []
+  await apply(flaky, app, 'c0ffee', planId('c0ffee', p.actions), () => {}, async (ms) => waits.push(ms))
+  assert.deepEqual(waits, [2_000])
+})
+
+test('a new module section that Make does not show yet is read again', async () => {
+  seedFromRepo()
+  const m = app.modules.at(-1)
+  dropModule(m.name)
+  const api = `${appPath}/modules/${m.name}/api`
+  const p = await plan(request, app)
+  // Make answers the first read after the PUT with a 404, as for a section it does not have.
+  let missing = 1
+  const lagging = async (method, path, opts) => {
+    const pushed = make.requests.some((r) => r.method === 'PUT' && r.path === api)
+    if (method === 'GET' && path === api && pushed && missing-- > 0) return { status: 404, text: '{"message":"not found"}' }
+    return request(method, path, opts)
+  }
+  const waits = []
+  await apply(lagging, app, 'c0ffee', planId('c0ffee', p.actions), () => {}, async (ms) => waits.push(ms))
+  assert.deepEqual(waits, [2_000])
+  assert.equal(make.sections.get(api), m.sections.api.text)
 })
 
 // --- the checkout guard ---
