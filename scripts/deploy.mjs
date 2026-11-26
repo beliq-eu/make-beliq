@@ -39,6 +39,10 @@ export const CONNECTION = 'beliq-pk8e4f'
 const TOKEN_FILE = join(homedir(), '.config', 'beliq', 'make-api-token')
 const REQUEST_TIMEOUT_MS = 60_000
 const PLAN_ID_HEX = 16
+// On 2026-11-07 Make answered the read right after a PUT of groups with the copy from before
+// it, and held the pushed copy when read a minute later. So a read-back that differs is read
+// again for up to a minute before the deploy stops.
+const READBACK_WAITS_MS = [2_000, 4_000, 8_000, 16_000, 30_000]
 
 const appPath = `/sdk/apps/${APP}/${VERSION}`
 const connectionPath = `/sdk/apps/connections/${CONNECTION}`
@@ -169,22 +173,36 @@ export function planId(commit, actions) {
   return sha256(JSON.stringify({ commit, items })).slice(0, PLAN_ID_HEX)
 }
 
-export async function apply(request, app, commit, id, log = console.log) {
+export async function apply(request, app, commit, id, log = console.log, wait = sleep) {
   const { actions } = await plan(request, app)
   const current = planId(commit, actions)
   if (current !== id) throw new Error(`the plan is now ${current}, not ${id}; run plan again and read it first`)
   for (const a of actions) {
     const res = await request(a.method, a.path, { body: a.body, contentType: a.contentType })
     if (res.status < 200 || res.status > 299) throw new Error(`${a.label}: ${a.method} ${a.path} answered ${makeError(res)}`)
-    if (a.readback) {
-      const back = await get(request, a.path)
-      if (back.status !== 200 || !sameJson(back.text, a.expected)) throw new Error(`${a.label}: Make's copy differs from the file after the push`)
+    if (a.readback && !(await readBack(request, a, log, wait))) {
+      throw new Error(`${a.label}: Make's copy differs from the file after the push`)
     }
     log(`done  ${a.label}`)
   }
   const after = await plan(request, app)
   const left = after.actions.filter((a) => !a.always)
   if (left.length) throw new Error(`after the deploy these still differ: ${left.map((a) => a.label).join('; ')}`)
+}
+
+async function readBack(request, a, log, wait) {
+  for (let attempt = 0; ; attempt++) {
+    const back = await get(request, a.path)
+    if (back.status === 200 && sameJson(back.text, a.expected)) return true
+    if (attempt === READBACK_WAITS_MS.length) return false
+    const ms = READBACK_WAITS_MS[attempt]
+    log(`wait  ${a.label}: Make's copy is not the pushed one yet, reading it again in ${ms / 1000} s`)
+    await wait(ms)
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function publish(request, app, name) {

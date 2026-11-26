@@ -190,7 +190,38 @@ test('a push that Make stores differently fails the deploy', async () => {
   const p = await plan(request, app)
   const original = request
   const lossy = async (method, path, opts) => original(method, path, method === 'PUT' && path.endsWith('/base') ? { ...opts, body: '{}' } : opts)
-  await assert.rejects(apply(lossy, app, 'c0ffee', planId('c0ffee', p.actions), () => {}), /differs from the file/)
+  const waits = []
+  await assert.rejects(apply(lossy, app, 'c0ffee', planId('c0ffee', p.actions), () => {}, async (ms) => waits.push(ms)), /differs from the file/)
+  // Read again for a minute in all before it stops, and nothing after base is pushed: two
+  // plan reads, then the read-back and one more after each wait.
+  assert.deepEqual(waits, [2_000, 4_000, 8_000, 16_000, 30_000])
+  assert.equal(make.requests.filter((r) => r.method === 'GET' && r.path === `${appPath}/base`).length, 2 + 1 + waits.length)
+  assert.deepEqual(writes().map((r) => r.path), [`${appPath}/base`])
+})
+
+test('a read-back that is stale at first is read again until it matches', async () => {
+  seedFromRepo()
+  const groups = `${appPath}/groups`
+  make.sections.set(groups, '[]')
+  const p = await plan(request, app)
+  assert.deepEqual(sections(p), ['groups'])
+  // Make answers the first two reads after the PUT with the copy from before it.
+  let stale = 2
+  const lagging = async (method, path, opts) => {
+    const pushed = make.requests.some((r) => r.method === 'PUT' && r.path === groups)
+    if (method === 'GET' && path === groups && pushed && stale > 0) {
+      stale--
+      return { status: 200, text: '[]' }
+    }
+    return request(method, path, opts)
+  }
+  const waits = []
+  const log = []
+  await apply(lagging, app, 'c0ffee', planId('c0ffee', p.actions), (line) => log.push(line), async (ms) => waits.push(ms))
+  assert.deepEqual(waits, [2_000, 4_000])
+  assert.equal(log.filter((line) => line.startsWith('wait  groups')).length, 2)
+  assert.ok(log.includes('done  icon'))
+  assert.deepEqual(JSON.parse(make.sections.get(groups)), app.groups.json)
 })
 
 // --- the checkout guard ---

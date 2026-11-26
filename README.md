@@ -25,7 +25,7 @@ The module sends the file you map, a CII or UBL XML invoice or a PDF with the in
 
 Its output holds each key of the answer's `data` under its own name: **Format**, **Profile detected**, **Profile URN**, **Business process ID**, **France CTC detected**, **Invoice** (number, dates, parties, lines, delivery and totals) and **Warnings**, then **Full response data** and **Request ID**. A field that was not read from the document stays empty: the module fills in no default. **Warnings** names what the answer does not return, so read it before you treat an empty field as absent from the invoice.
 
-`scripts/parse-interface.mjs` writes the module's interface and output mapping from the `/v1/parse` answer in [the API's openapi.json](https://api.beliq.eu/openapi.json), and CI runs it with `--check` on every pull request and every push to `main`.
+`scripts/parse-interface.mjs` writes the module's interface and output mapping from the `/v1/parse` answer in [the API's openapi.json](https://api.beliq.eu/openapi.json), and CI runs it with `--check` on every pull request, every push to `main` and every Monday (`.github/workflows/drift.yml`), so a change to the answer shows up within a week even when nothing is pushed here.
 
 ## Make an API call
 
@@ -66,7 +66,7 @@ node scripts/deploy.mjs apply <plan-id>   # pushes that plan, then reads every s
 node scripts/deploy.mjs publish <module>  # publishes a module; final
 ```
 
-A deploy reaches every organisation that installed the app at once. An apply creates a new module unpublished, so it can be run in a scenario of the app's owner first. Publishing is a separate step because it is final: Make never deletes a published module or changes its name.
+A section whose read-back differs is read again for up to a minute, because Make can answer a read right after a push with the copy from before it. A deploy reaches every organisation that installed the app at once. An apply creates a new module unpublished, so it can be run in a scenario of the app's owner first. Publishing is a separate step because it is final: Make never deletes a published module or changes its name.
 
 ## License
 
